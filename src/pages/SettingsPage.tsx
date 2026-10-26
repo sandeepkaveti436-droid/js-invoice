@@ -12,16 +12,39 @@ import {
   CheckCircle2, 
   CreditCard,
   Mail,
-  Key
+  Key,
+  Database,
+  Cloud,
+  Check,
+  AlertCircle,
+  Copy,
+  ExternalLink
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { AppSettings, TemplateCustomization } from '../types';
 import { CURRENCIES } from '../utils/currency';
 import { StorageService } from '../services/storage';
 import { CountrySelect } from '../components/common/CountrySelect';
+import { 
+  getSupabaseConfig, 
+  saveSupabaseConfig, 
+  testSupabaseConnection, 
+  isSupabaseConfigured 
+} from '../services/supabaseClient';
+import { SupabaseSync } from '../services/supabaseSync';
 
 export const SettingsPage: React.FC = () => {
-  const { currentUser, settings, updateSettings, clearMyData, showToast } = useApp();
+  const { 
+    currentUser, 
+    settings, 
+    updateSettings, 
+    clearMyData, 
+    showToast,
+    invoices,
+    clients,
+    payments,
+    quotes
+  } = useApp();
 
   const [activeTab, setActiveTab] = useState<'business' | 'defaults' | 'appearance' | 'gateway' | 'data'>('business');
   const [formData, setFormData] = useState<AppSettings>(() => {
@@ -32,6 +55,48 @@ export const SettingsPage: React.FC = () => {
     return copy;
   });
   const [jsonBackupString, setJsonBackupString] = useState('');
+
+  // Supabase State
+  const [supabaseUrl, setSupabaseUrl] = useState(() => getSupabaseConfig().url);
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => getSupabaseConfig().anonKey);
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+  const [supabaseStatusMsg, setSupabaseStatusMsg] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+
+  const handleTestAndSaveSupabase = async () => {
+    setIsTestingSupabase(true);
+    setSupabaseStatusMsg(null);
+
+    saveSupabaseConfig({ url: supabaseUrl, anonKey: supabaseAnonKey });
+
+    const result = await testSupabaseConnection(supabaseUrl, supabaseAnonKey);
+    setIsTestingSupabase(false);
+
+    if (result.success) {
+      setSupabaseStatusMsg({ type: 'success', text: result.message });
+      showToast('Connected to Supabase!', 'success');
+    } else {
+      setSupabaseStatusMsg({ type: 'error', text: result.message });
+      showToast('Supabase connection failed', 'error');
+    }
+  };
+
+  const handlePushAllToCloud = async () => {
+    if (!isSupabaseConfigured()) {
+      showToast('Please configure Supabase URL and Key first.', 'error');
+      return;
+    }
+
+    setIsSyncingCloud(true);
+    const res = await SupabaseSync.pushAllLocalToCloud(invoices, clients, payments, quotes);
+    setIsSyncingCloud(false);
+
+    if (res.success) {
+      showToast(`Successfully synced ${res.count} records to Supabase cloud!`, 'success');
+    } else {
+      showToast(`Cloud sync error: ${res.error}`, 'error');
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -659,10 +724,126 @@ export const SettingsPage: React.FC = () => {
 
         {/* Tab 5: Data, Backup & Reset */}
         {activeTab === 'data' && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-subtle space-y-4 text-xs">
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-subtle space-y-5 text-xs">
             <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100">
-              Database Persistence & Backups
+              Database Persistence, Cloud Sync & Backups
             </h3>
+
+            {/* Supabase Cloud Database Configuration */}
+            <div className="p-5 bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl text-white space-y-4 border border-slate-800 shadow-md">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-white">Supabase Cloud Database (PostgreSQL)</h4>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                        isSupabaseConfigured()
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured() ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        {isSupabaseConfigured() ? 'Cloud Sync Active' : 'Disconnected (Local Storage Only)'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Sync invoices, clients, and payments across your phone, laptop, and desktop in real-time.
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href="https://supabase.com/dashboard"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-1 transition-colors"
+                >
+                  <span>Open Supabase</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">
+                    Supabase Project URL <span className="text-emerald-400">*</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={supabaseUrl}
+                    onChange={e => setSupabaseUrl(e.target.value)}
+                    placeholder="https://xyzproject.supabase.co"
+                    className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-emerald-400 focus:outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Found in Supabase: Project Settings → API → Project URL
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">
+                    Supabase Anon / Public Key <span className="text-emerald-400">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={supabaseAnonKey}
+                    onChange={e => setSupabaseAnonKey(e.target.value)}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-emerald-400 focus:outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Found in Supabase: Project Settings → API → Project API Keys → anon public
+                  </span>
+                </div>
+              </div>
+
+              {supabaseStatusMsg && (
+                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                  supabaseStatusMsg.type === 'success'
+                    ? 'bg-emerald-950/80 border border-emerald-500/50 text-emerald-200'
+                    : 'bg-rose-950/80 border border-rose-500/50 text-rose-200'
+                }`}>
+                  {supabaseStatusMsg.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  )}
+                  <span>{supabaseStatusMsg.text}</span>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleTestAndSaveSupabase}
+                    disabled={isTestingSupabase}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{isTestingSupabase ? 'Verifying...' : 'Save & Test Connection'}</span>
+                  </button>
+
+                  {isSupabaseConfigured() && (
+                    <button
+                      type="button"
+                      onClick={handlePushAllToCloud}
+                      disabled={isSyncingCloud}
+                      className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      <Cloud className="w-4 h-4 text-indigo-300" />
+                      <span>{isSyncingCloud ? 'Syncing...' : 'Push All Local Invoices to Cloud'}</span>
+                    </button>
+                  )}
+                </div>
+
+                <span className="text-[11px] text-slate-400">
+                  SQL schema available in project: <code className="text-emerald-300 font-mono">supabase-schema.sql</code>
+                </span>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Export Card */}

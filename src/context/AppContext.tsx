@@ -11,6 +11,8 @@ import {
   NavigationPage 
 } from '../types';
 import { StorageService, createDefaultSettings } from '../services/storage';
+import { isSupabaseConfigured } from '../services/supabaseClient';
+import { SupabaseSync } from '../services/supabaseSync';
 
 export interface ToastMessage {
   id: string;
@@ -105,8 +107,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Refresh data whenever current user changes
-  const refreshData = () => {
+  // Refresh data whenever current user changes (with offline-first local + cloud sync)
+  const refreshData = async () => {
     const user = StorageService.getCurrentUser();
     if (!user) {
       setInvoices([]);
@@ -119,6 +121,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
 
+    // 1. Instant local read for zero-delay UI response
     setInvoices(StorageService.getInvoices(user.id));
     setQuotes(StorageService.getQuotes(user.id));
     setClients(StorageService.getClients(user.id));
@@ -126,6 +129,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setPayments(StorageService.getPayments(user.id));
     setSettings(StorageService.getUserSettings(user.id));
     setActivities(StorageService.getActivities(user.id));
+
+    // 2. Seamless cloud sync from Supabase if connected
+    if (isSupabaseConfigured()) {
+      try {
+        const cloudInvoices = await SupabaseSync.fetchInvoices(user.id);
+        if (cloudInvoices && cloudInvoices.length > 0) {
+          cloudInvoices.forEach(inv => StorageService.saveInvoice(inv, user.id));
+          setInvoices(StorageService.getInvoices(user.id));
+        }
+
+        const cloudClients = await SupabaseSync.fetchClients(user.id);
+        if (cloudClients && cloudClients.length > 0) {
+          cloudClients.forEach(c => StorageService.saveClient(c, user.id));
+          setClients(StorageService.getClients(user.id));
+        }
+
+        const cloudPayments = await SupabaseSync.fetchPayments(user.id);
+        if (cloudPayments && cloudPayments.length > 0) {
+          setPayments(StorageService.getPayments(user.id));
+        }
+      } catch (err) {
+        console.warn('Background Supabase sync error:', err);
+      }
+    }
   };
 
   useEffect(() => {
@@ -235,11 +262,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentView('client_detail');
   };
 
-  // Data Operations (Scoped to currentUser)
+  // Data Operations (Scoped to currentUser with background cloud sync)
   const handleSaveInvoice = (invoice: Invoice): Invoice => {
     const saved = StorageService.saveInvoice(invoice, currentUser?.id);
     refreshData();
     showToast(`Invoice ${saved.number} saved!`, 'success');
+    SupabaseSync.upsertInvoice(saved).catch(() => {});
     return saved;
   };
 
@@ -248,6 +276,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (success) {
       refreshData();
       showToast('Invoice deleted', 'info');
+      SupabaseSync.deleteInvoice(id).catch(() => {});
       if (activeInvoiceId === id) {
         setActiveInvoiceId(null);
         setCurrentView('invoices');
@@ -261,6 +290,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (dup) {
       refreshData();
       showToast(`Invoice duplicated as ${dup.number}`, 'success');
+      SupabaseSync.upsertInvoice(dup).catch(() => {});
       setActiveInvoiceId(dup.id);
       setCurrentView('invoice_edit');
     }
@@ -292,6 +322,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (inv) {
       refreshData();
       showToast(`Quote converted into Invoice ${inv.number}!`, 'success');
+      SupabaseSync.upsertInvoice(inv).catch(() => {});
       setActiveInvoiceId(inv.id);
       setCurrentView('invoice_detail');
     }
@@ -302,6 +333,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const saved = StorageService.saveClient(client, currentUser?.id);
     refreshData();
     showToast(`Client "${saved.name}" saved!`, 'success');
+    SupabaseSync.upsertClient(saved).catch(() => {});
     return saved;
   };
 
@@ -309,6 +341,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const res = StorageService.deleteClient(id);
     refreshData();
     showToast(res.message || 'Client deleted', res.success ? 'info' : 'error');
+    if (res.success) {
+      SupabaseSync.deleteClient(id).catch(() => {});
+    }
     if (activeClientId === id) {
       setActiveClientId(null);
       setCurrentView('clients');
@@ -336,6 +371,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const result = StorageService.recordPayment(paymentData, currentUser?.id);
     refreshData();
     showToast(`Payment of ${result.payment.amount} recorded for Invoice ${result.invoice.number}!`, 'success');
+    SupabaseSync.upsertPayment(result.payment).catch(() => {});
+    SupabaseSync.upsertInvoice(result.invoice).catch(() => {});
     return result;
   };
 
