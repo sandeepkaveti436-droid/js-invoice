@@ -318,4 +318,38 @@ describe('InvoiceFlow Financial Calculations & Required Test Scenarios', () => {
     assert.equal(totalPlatformGmv, 4000);
     assert.equal(totalCollections, 2500);
   });
+
+  test('Scenario 11: Official Email Validation & Dummy Address Rejection', () => {
+    const BLOCKED_USERNAMES = new Set([
+      'abc', 'xyz', 'test', 'testing', 'dummy', 'fake', 'sample', 'demo',
+      'temp', 'user.google', 'google', 'user', 'asdf', 'qwerty', '123',
+      '1234', '12345', 'admin', 'alex', 'null', 'undefined', 'none', 'nobody', 'anonymous'
+    ]);
+
+    function validateOfficialEmail(rawEmail) {
+      const email = (rawEmail || '').trim().toLowerCase();
+      if (!email) return { valid: false, reason: 'Empty email' };
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+      if (!emailRegex.test(email)) return { valid: false, reason: 'Invalid format' };
+      const [username] = email.split('@');
+      if (BLOCKED_USERNAMES.has(username) || username.length < 3 || /^(.)\1+$/.test(username)) {
+        return { valid: false, reason: 'Dummy email address' };
+      }
+      return { valid: true };
+    }
+
+    // Dummy emails must be strictly rejected
+    assert.equal(validateOfficialEmail('abc@gmail.com').valid, false);
+    assert.equal(validateOfficialEmail('user.google@gmail.com').valid, false);
+    assert.equal(validateOfficialEmail('test@gmail.com').valid, false);
+    assert.equal(validateOfficialEmail('dummy@company.com').valid, false);
+    assert.equal(validateOfficialEmail('xyz@gmail.com').valid, false);
+    assert.equal(validateOfficialEmail('ab@gmail.com').valid, false);
+    assert.equal(validateOfficialEmail('aaaa@gmail.com').valid, false);
+
+    // Official genuine emails must be accepted
+    assert.equal(validateOfficialEmail('alexander.billing@gmail.com').valid, true);
+    assert.equal(validateOfficialEmail('finance@company.org').valid, true);
+    assert.equal(validateOfficialEmail('rahul.sharma@techcorp.in').valid, true);
+  });
 });

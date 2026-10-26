@@ -122,7 +122,7 @@ export const SendInvoiceModal: React.FC<Props> = ({ invoice, isOpen, onClose }) 
                 type="text"
                 value={ccEmail}
                 onChange={e => setCcEmail(e.target.value)}
-                placeholder="accounting@nexuscraft.design"
+                placeholder="billing@yourcompany.com"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
               />
             </div>

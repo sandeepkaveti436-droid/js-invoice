@@ -14,6 +14,7 @@ import {
   UserCheck,
   Eye
 } from 'lucide-react';
+import { validateOfficialEmail } from '../../utils/validation';
 
 interface Props {
   isOpen: boolean;
@@ -22,7 +23,7 @@ interface Props {
 }
 
 export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true }) => {
-  const { login, signup, loginWithGoogle, showToast } = useApp();
+  const { login, signup, showToast } = useApp();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -38,6 +39,13 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
     e.preventDefault();
     setError(null);
     setIsLoading(true);
+
+    const emailCheck = validateOfficialEmail(email);
+    if (!emailCheck.valid) {
+      setError(emailCheck.reason || 'Please enter a valid official email address.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       if (mode === 'signin') {
@@ -66,32 +74,14 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
+  const handleGoogleLogin = () => {
+    setMode('signup');
+    setName('');
+    setEmail('');
+    setPassword('');
+    setCompanyName('');
     setError(null);
-    try {
-      await loginWithGoogle();
-      showToast('Signed in with Google successfully!', 'success');
-      if (onClose) onClose();
-    } catch (err: any) {
-      setError(err?.message || 'Google authentication failed.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickDemoUser = async () => {
-    setIsLoading(true);
-    try {
-      await signup('Alex Rivera', 'alex@nexuscraft.design', 'demo123', 'Nexus Craft Studio');
-      showToast('Logged in as Demo User!', 'success');
-      if (onClose) onClose();
-    } catch {
-      await login('alex@nexuscraft.design', 'demo123');
-      if (onClose) onClose();
-    } finally {
-      setIsLoading(false);
-    }
+    showToast('Please enter your official Google account details to register.', 'info');
   };
 
   return (
@@ -124,18 +114,6 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
               ? 'Sign in to access your personal invoice workspace'
               : 'Create an account to start generating commercial invoices'}
           </p>
-        </div>
-
-        {/* 1-Click Fast Access Demo Button */}
-        <div className="mb-4">
-          <button
-            type="button"
-            onClick={handleQuickDemoUser}
-            className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200/80 transition-colors"
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>1-Click Demo Login</span>
-          </button>
         </div>
 
         {/* Google OAuth Option */}

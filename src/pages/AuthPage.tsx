@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   ExternalLink
 } from 'lucide-react';
+import { validateOfficialEmail } from '../utils/validation';
 
 interface CountryCode {
   name: string;
@@ -170,19 +171,18 @@ export const AuthPage: React.FC = () => {
     setErrorMessage(null);
     setIsLoading(true);
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     try {
       if (mode === 'signin') {
         const cleanEmail = email.trim();
         if (!cleanEmail) {
-          setErrorMessage('Please enter your email address.');
+          setErrorMessage('Please enter your official email address.');
           setIsLoading(false);
           return;
         }
 
-        if (!emailRegex.test(cleanEmail)) {
-          setErrorMessage('Please enter a valid email address format (e.g. name@company.com).');
+        const emailCheck = validateOfficialEmail(cleanEmail);
+        if (!emailCheck.valid) {
+          setErrorMessage(emailCheck.reason || 'Please enter a valid official email address.');
           setIsLoading(false);
           return;
         }
@@ -225,8 +225,9 @@ export const AuthPage: React.FC = () => {
           return;
         }
 
-        if (!cleanEmail || !emailRegex.test(cleanEmail)) {
-          setErrorMessage('Please enter a valid email address (e.g. name@company.com).');
+        const emailCheck = validateOfficialEmail(cleanEmail);
+        if (!emailCheck.valid) {
+          setErrorMessage(emailCheck.reason || 'Please enter a valid official email address.');
           setIsLoading(false);
           return;
         }
@@ -261,14 +262,23 @@ export const AuthPage: React.FC = () => {
         return;
 
       } else if (mode === 'forgot') {
-        if (!email.trim()) {
-          setErrorMessage('Please enter your registered email address.');
+        const cleanEmail = email.trim();
+        if (!cleanEmail) {
+          setErrorMessage('Please enter your registered official email address.');
           setIsLoading(false);
           return;
         }
+
+        const emailCheck = validateOfficialEmail(cleanEmail);
+        if (!emailCheck.valid) {
+          setErrorMessage(emailCheck.reason || 'Please enter a valid official email address.');
+          setIsLoading(false);
+          return;
+        }
+
         // Simulated password reset
         setResetSent(true);
-        showToast('Password reset link sent to ' + email, 'info');
+        showToast('Password reset link sent to ' + cleanEmail, 'info');
         setIsLoading(false);
       }
     } catch (err: any) {
@@ -278,12 +288,14 @@ export const AuthPage: React.FC = () => {
   };
 
   const handleGoogleAuth = () => {
-    // Redirect to create account form with Google verified details pre-filled
+    // Navigate to create account form with clean blank inputs so user enters their genuine Google details
     setMode('signup');
-    setFullName('Google User');
-    setEmail('user.google@gmail.com');
+    setFullName('');
+    setEmail('');
+    setPassword('');
+    setPhone('');
     setErrorMessage(null);
-    showToast('Google account connected! Please enter your phone number and password to complete your account.', 'info');
+    showToast('Please enter your official Google account details to register your JS Invoice workspace.', 'info');
   };
 
   const activeSlideData = CAROUSEL_SLIDES[currentSlide];
@@ -675,7 +687,7 @@ export const AuthPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Example123@gmail.com"
+                placeholder="official.name@company.com or @gmail.com"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all bg-white"
               />
             </div>

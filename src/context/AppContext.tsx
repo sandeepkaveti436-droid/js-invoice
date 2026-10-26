@@ -158,15 +158,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const loginWithGoogle = async (): Promise<User> => {
-    // Generate or login via Google
-    const { user } = StorageService.registerUser({
-      name: 'Google User',
-      email: 'user.google@gmail.com',
-      companyName: 'Google Workspace Studio',
-      provider: 'google',
-    });
-    setCurrentUser(user);
-    return user;
+    throw new Error('Please enter your official Google account details in the registration form.');
   };
 
   const logout = () => {

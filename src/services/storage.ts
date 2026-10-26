@@ -13,17 +13,18 @@ import {
 } from '../types';
 import { calculateInvoice } from '../utils/calculator';
 import { generateInvoiceNumber, generateQuoteNumber, getDateAfterDays, getTodayDateString } from '../utils/formatters';
+import { validateOfficialEmail } from '../utils/validation';
 
 const STORAGE_KEYS = {
-  USERS: 'js_invoice_users_v2',
-  CURRENT_USER: 'js_invoice_current_user_v2',
-  INVOICES: 'js_invoice_invoices_v2',
-  QUOTES: 'js_invoice_quotes_v2',
-  CLIENTS: 'js_invoice_clients_v2',
-  PRODUCTS: 'js_invoice_products_v2',
-  PAYMENTS: 'js_invoice_payments_v2',
-  SETTINGS: 'js_invoice_settings_v2',
-  ACTIVITIES: 'js_invoice_activities_v2',
+  USERS: 'js_invoice_users_v3',
+  CURRENT_USER: 'js_invoice_current_user_v3',
+  INVOICES: 'js_invoice_invoices_v3',
+  QUOTES: 'js_invoice_quotes_v3',
+  CLIENTS: 'js_invoice_clients_v3',
+  PRODUCTS: 'js_invoice_products_v3',
+  PAYMENTS: 'js_invoice_payments_v3',
+  SETTINGS: 'js_invoice_settings_v3',
+  ACTIVITIES: 'js_invoice_activities_v3',
 };
 
 export const DEFAULT_TEMPLATE_CONFIG: TemplateCustomization = {
@@ -156,6 +157,48 @@ function writeStorage<T>(key: string, data: T): void {
  */
 export const StorageService = {
   init() {
+    if (typeof window !== 'undefined') {
+      // Purge all legacy v1 & v2 storage keys
+      const legacyKeys = [
+        'js_invoice_users_v2', 'js_invoice_current_user_v2',
+        'js_invoice_invoices_v2', 'js_invoice_quotes_v2',
+        'js_invoice_clients_v2', 'js_invoice_products_v2',
+        'js_invoice_payments_v2', 'js_invoice_settings_v2',
+        'js_invoice_activities_v2',
+        'js_invoice_users', 'js_invoice_current_user',
+        'js_invoice_invoices', 'js_invoice_quotes',
+        'js_invoice_clients', 'js_invoice_products',
+        'js_invoice_payments', 'js_invoice_settings',
+        'js_invoice_activities'
+      ];
+      legacyKeys.forEach(k => {
+        try { localStorage.removeItem(k); } catch (e) {}
+      });
+
+      // Filter out any dummy emails in v3 users if any exist
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.USERS);
+        if (raw) {
+          const list: User[] = JSON.parse(raw);
+          const sanitized = list.filter(u => validateOfficialEmail(u.email).valid);
+          if (sanitized.length !== list.length) {
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(sanitized));
+          }
+        }
+      } catch (e) {}
+
+      // Check current user: purge if dummy or not verified
+      try {
+        const rawCur = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        if (rawCur) {
+          const cur: User = JSON.parse(rawCur);
+          if (!cur || !validateOfficialEmail(cur.email).valid || cur.isVerified !== true) {
+            localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+          }
+        }
+      } catch (e) {}
+    }
+
     if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
       writeStorage(STORAGE_KEYS.USERS, SEED_USERS);
     }
@@ -168,7 +211,18 @@ export const StorageService = {
   },
 
   getCurrentUser(): User | null {
-    return readStorage<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+    this.init();
+    const user = readStorage<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (!user) return null;
+
+    // Safety guard: unverified or dummy accounts are purged immediately
+    const emailCheck = validateOfficialEmail(user.email);
+    if (!emailCheck.valid || user.isVerified !== true) {
+      this.setCurrentUser(null);
+      return null;
+    }
+
+    return user;
   },
 
   setCurrentUser(user: User | null): void {
@@ -184,9 +238,15 @@ export const StorageService = {
     provider?: 'email' | 'google' 
   }): { user: User; verificationToken: string; verificationUrl: string } {
     const cleanEmail = payload.email.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      throw new Error('Please enter a valid official email address (e.g. name@company.com).');
+    
+    // Strict official email validation
+    const emailCheck = validateOfficialEmail(cleanEmail);
+    if (!emailCheck.valid) {
+      throw new Error(emailCheck.reason || 'Please enter a valid official email address.');
+    }
+
+    if (!payload.name || !payload.name.trim()) {
+      throw new Error('Please enter your full name.');
     }
 
     const users = this.getUsers();
@@ -196,7 +256,6 @@ export const StorageService = {
     }
 
     const verificationToken = 'vtok_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
-    const isPreVerified = payload.provider === 'google';
 
     const newUser: User = {
       id: 'user_' + Date.now(),
@@ -210,8 +269,8 @@ export const StorageService = {
       createdAt: new Date().toISOString(),
       lastLoginAt: new Date().toISOString(),
       status: 'active',
-      isVerified: isPreVerified,
-      verificationToken: isPreVerified ? undefined : verificationToken,
+      isVerified: false, // Strict: requires activation via the official verification link
+      verificationToken: verificationToken,
     };
 
     users.push(newUser);
@@ -220,10 +279,6 @@ export const StorageService = {
     // Initialize user's settings with their clean original profile
     const settings = createDefaultSettings(newUser);
     writeStorage(STORAGE_KEYS.SETTINGS + '_' + newUser.id, settings);
-
-    if (isPreVerified) {
-      this.setCurrentUser(newUser);
-    }
 
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const verificationUrl = `${origin}?verify=${verificationToken}&email=${encodeURIComponent(cleanEmail)}`;
@@ -252,9 +307,11 @@ export const StorageService = {
 
   loginUser(email: string, password?: string): User {
     const cleanEmail = email.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      throw new Error('Invalid email address format. Please enter a valid email (e.g. name@company.com).');
+    
+    // Strict official email validation
+    const emailCheck = validateOfficialEmail(cleanEmail);
+    if (!emailCheck.valid) {
+      throw new Error(emailCheck.reason || 'Invalid email address format.');
     }
 
     const users = this.getUsers();
@@ -267,12 +324,12 @@ export const StorageService = {
       throw new Error('This account has been suspended by an administrator.');
     }
 
-    if (found.isVerified === false) {
-      throw new Error('This email account has not been activated yet. Please click the verification link sent during sign up.');
+    if (found.isVerified !== true) {
+      throw new Error('This account has not been activated yet. Please click the official verification link sent during sign up.');
     }
 
-    if (found.password && password && found.password !== password) {
-      throw new Error('Incorrect password. Please verify your password and try again.');
+    if (found.password && (!password || found.password !== password)) {
+      throw new Error('Incorrect password. Please verify your credentials and try again.');
     }
 
     found.lastLoginAt = new Date().toISOString();
