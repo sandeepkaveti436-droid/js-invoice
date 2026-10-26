@@ -126,8 +126,23 @@ export const createDefaultSettings = (user?: Partial<User>): AppSettings => ({
   },
 });
 
-// Real User Database (starts clean without dummy users)
-const SEED_USERS: User[] = [];
+// Real User Database with Master Admin Account
+export const MASTER_ADMIN_USER: User = {
+  id: 'user_admin',
+  name: 'System Administrator',
+  email: 'admin@jsinvoice.com',
+  password: 'Admin@JS2026!',
+  phone: '+91 9999999999',
+  companyName: 'JS Invoice Operations',
+  provider: 'email',
+  role: 'admin',
+  status: 'active',
+  isVerified: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  lastLoginAt: new Date().toISOString(),
+};
+
+const SEED_USERS: User[] = [MASTER_ADMIN_USER];
 
 // Helper to safely read from localStorage
 function readStorage<T>(key: string, defaultValue: T): T {
@@ -209,6 +224,22 @@ export const StorageService = {
 
     if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
       writeStorage(STORAGE_KEYS.USERS, SEED_USERS);
+    } else {
+      // Ensure master admin account always exists and is authorized with correct credentials
+      try {
+        const users = readStorage<User[]>(STORAGE_KEYS.USERS, []);
+        const adminIdx = users.findIndex(u => u.id === 'user_admin' || u.email.toLowerCase() === 'admin@jsinvoice.com');
+        if (adminIdx === -1) {
+          users.unshift(MASTER_ADMIN_USER);
+          writeStorage(STORAGE_KEYS.USERS, users);
+        } else {
+          users[adminIdx].role = 'admin';
+          users[adminIdx].isVerified = true;
+          users[adminIdx].status = 'active';
+          users[adminIdx].password = MASTER_ADMIN_USER.password;
+          writeStorage(STORAGE_KEYS.USERS, users);
+        }
+      } catch (e) {}
     }
   },
 
@@ -321,7 +352,13 @@ export const StorageService = {
   },
 
   loginUser(email: string, password?: string): User {
-    const cleanEmail = email.trim().toLowerCase();
+    const rawInput = (email || '').trim();
+    let cleanEmail = rawInput.toLowerCase();
+
+    // Support typing "admin" directly as username
+    if (cleanEmail === 'admin') {
+      cleanEmail = 'admin@jsinvoice.com';
+    }
     
     // Strict official email validation
     const emailCheck = validateOfficialEmail(cleanEmail);
@@ -353,7 +390,164 @@ export const StorageService = {
     return found;
   },
 
-  toggleUserStatus(userId: string): boolean {
+  // Admin Platform Operations & User Management Authority
+  getAdminPlatformMetrics() {
+    this.init();
+    const users = this.getUsers();
+    const invoices = this.getAllInvoicesRaw();
+    const quotes = this.getAllQuotesRaw();
+    const payments = this.getAllPaymentsRaw();
+
+    const totalUsers = users.length;
+    const activeUsers = users.filter(u => u.status === 'active').length;
+    const suspendedUsers = users.filter(u => u.status === 'suspended').length;
+    const verifiedUsers = users.filter(u => u.isVerified === true).length;
+    const unverifiedUsers = users.filter(u => u.isVerified !== true).length;
+
+    const totalInvoices = invoices.length;
+    const totalBilled = invoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
+    const totalPaid = invoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0);
+    const totalOutstanding = invoices.reduce((sum, inv) => sum + (inv.balanceDue || 0), 0);
+
+    // Onboarding Telemetry:
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const signedUpToday = users.filter(u => u.createdAt && u.createdAt.startsWith(todayStr)).length;
+    const signedUpThisWeek = users.filter(u => u.createdAt && u.createdAt >= sevenDaysAgo).length;
+    const signedUpThisMonth = users.filter(u => u.createdAt && u.createdAt >= thirtyDaysAgo).length;
+
+    // Per user telemetry & invoice breakdown
+    const userStats = users.map(u => {
+      const uInvoices = invoices.filter(i => i.userId === u.id);
+      const uInvoicesCount = uInvoices.length;
+      const uBilledTotal = uInvoices.reduce((sum, i) => sum + (i.grandTotal || 0), 0);
+      return {
+        ...u,
+        invoicesCount: uInvoicesCount,
+        billedTotal: uBilledTotal,
+      };
+    });
+
+    return {
+      totalUsers,
+      activeUsers,
+      suspendedUsers,
+      verifiedUsers,
+      unverifiedUsers,
+      totalInvoices,
+      totalQuotes: quotes.length,
+      totalPayments: payments.length,
+      totalBilled,
+      totalPaid,
+      totalOutstanding,
+      signedUpToday,
+      signedUpThisWeek,
+      signedUpThisMonth,
+      userStats,
+    };
+  },
+
+  adminCreateUser(payload: {
+    name: string;
+    email: string;
+    password?: string;
+    phone?: string;
+    companyName?: string;
+    role?: 'user' | 'admin';
+    autoVerify?: boolean;
+  }): User {
+    const cleanEmail = payload.email.trim().toLowerCase();
+    
+    // Strict official email validation
+    const emailCheck = validateOfficialEmail(cleanEmail);
+    if (!emailCheck.valid) {
+      throw new Error(emailCheck.reason || 'Please enter a valid official email address.');
+    }
+
+    if (!payload.name || !payload.name.trim()) {
+      throw new Error('Please enter user full name.');
+    }
+
+    if (payload.password) {
+      const passCheck = validatePassword(payload.password);
+      if (!passCheck.valid) {
+        throw new Error(passCheck.reason || 'Password must have at least 1 capital letter and 1 number.');
+      }
+    }
+
+    const users = this.getUsers();
+    const existing = users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      throw new Error('A user with this email address already exists.');
+    }
+
+    const isAutoVerified = payload.autoVerify ?? true;
+    const newUser: User = {
+      id: 'user_' + Date.now(),
+      name: payload.name.trim(),
+      email: cleanEmail,
+      password: payload.password || 'User@JS2026!',
+      phone: payload.phone?.trim() || '',
+      companyName: payload.companyName?.trim() || '',
+      provider: 'email',
+      role: payload.role || 'user',
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      status: 'active',
+      isVerified: isAutoVerified,
+      verificationToken: isAutoVerified ? undefined : ('vtok_' + Math.random().toString(36).substring(2, 10)),
+    };
+
+    users.push(newUser);
+    writeStorage(STORAGE_KEYS.USERS, users);
+
+    // Initialize user settings
+    const settings = createDefaultSettings(newUser);
+    writeStorage(STORAGE_KEYS.SETTINGS + '_' + newUser.id, settings);
+
+    return newUser;
+  },
+
+  adminDeleteUser(userId: string): boolean {
+    if (userId === 'user_admin') {
+      throw new Error('The master Super Admin account cannot be deleted.');
+    }
+
+    let users = this.getUsers();
+    users = users.filter(u => u.id !== userId);
+    writeStorage(STORAGE_KEYS.USERS, users);
+
+    // Clean up all invoices belonging to this user
+    const invoices = this.getAllInvoicesRaw().filter(i => i.userId !== userId);
+    writeStorage(STORAGE_KEYS.INVOICES, invoices);
+
+    // Clean up clients
+    const clients = this.getAllClientsRaw().filter(c => c.userId !== userId);
+    writeStorage(STORAGE_KEYS.CLIENTS, clients);
+
+    // Clean up quotes
+    const quotes = this.getAllQuotesRaw().filter(q => q.userId !== userId);
+    writeStorage(STORAGE_KEYS.QUOTES, quotes);
+
+    // Clean up payments
+    const payments = this.getAllPaymentsRaw().filter(p => p.userId !== userId);
+    writeStorage(STORAGE_KEYS.PAYMENTS, payments);
+
+    // Clean up user settings
+    try {
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS + '_' + userId);
+    } catch (e) {}
+
+    return true;
+  },
+
+  adminToggleUserStatus(userId: string): boolean {
+    if (userId === 'user_admin') {
+      throw new Error('The master Super Admin account status cannot be modified.');
+    }
     const users = this.getUsers();
     const target = users.find(u => u.id === userId);
     if (!target) return false;
@@ -362,12 +556,35 @@ export const StorageService = {
     return true;
   },
 
-  deleteUser(userId: string): boolean {
-    let users = this.getUsers();
-    if (userId === 'user_admin') return false; // Prevent deleting master admin
-    users = users.filter(u => u.id !== userId);
+  adminVerifyUser(userId: string): boolean {
+    const users = this.getUsers();
+    const target = users.find(u => u.id === userId);
+    if (!target) return false;
+    target.isVerified = true;
+    target.verificationToken = undefined;
     writeStorage(STORAGE_KEYS.USERS, users);
     return true;
+  },
+
+  adminResetUserPassword(userId: string, newPass: string): boolean {
+    const passCheck = validatePassword(newPass);
+    if (!passCheck.valid) {
+      throw new Error(passCheck.reason || 'Password must have at least 1 capital letter and 1 number.');
+    }
+    const users = this.getUsers();
+    const target = users.find(u => u.id === userId);
+    if (!target) return false;
+    target.password = newPass;
+    writeStorage(STORAGE_KEYS.USERS, users);
+    return true;
+  },
+
+  toggleUserStatus(userId: string): boolean {
+    return this.adminToggleUserStatus(userId);
+  },
+
+  deleteUser(userId: string): boolean {
+    return this.adminDeleteUser(userId);
   },
 
   // Invoices (Isolated per User)

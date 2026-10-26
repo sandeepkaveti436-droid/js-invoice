@@ -133,6 +133,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
         return { title: 'Invoice Template Gallery', breadcrumb: 'Templates' };
       case 'settings':
         return { title: 'Profile & Settings', breadcrumb: 'Settings' };
+      case 'admin_dashboard':
+        return { title: 'Super Admin Console & User Onboarding', breadcrumb: 'Platform / Administration' };
       default:
         return { title: 'JS Invoice', breadcrumb: 'Home' };
     }
@@ -276,6 +278,22 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
 
         {/* Right Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Super Admin Console Quick Toggle */}
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={() => setCurrentView(currentView === 'admin_dashboard' ? 'overview' : 'admin_dashboard')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${
+                currentView === 'admin_dashboard'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
+              }`}
+              title="Toggle Super Admin Console"
+            >
+              <ShieldCheck className="w-4 h-4 text-purple-500" />
+              <span className="hidden sm:inline">Admin Console</span>
+            </button>
+          )}
+
           {/* Quick Create Dropdown */}
           <div ref={quickRef} className="relative">
             <button
@@ -403,6 +421,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                   </div>
 
                   <div className="py-1">
+                    {currentUser.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setCurrentView('admin_dashboard');
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 font-bold mb-1 flex items-center justify-between"
+                      >
+                        <span>Super Admin Console</span>
+                        <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setCurrentView('settings');

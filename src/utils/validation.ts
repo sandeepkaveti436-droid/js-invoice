@@ -55,6 +55,11 @@ export function validateOfficialEmail(rawEmail: string): EmailValidationResult {
     return { valid: false, reason: 'Please enter your email address.' };
   }
 
+  // Official Master Admin whitelist
+  if (email === 'admin@jsinvoice.com' || email === 'admin@jsinvoice.io' || email === 'admin') {
+    return { valid: true };
+  }
+
   // Standard email format check
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
   if (!emailRegex.test(email)) {

@@ -57,6 +57,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'templates', label: 'Templates', icon: Palette },
     { id: 'settings', label: 'Settings', icon: Settings },
+    ...(currentUser?.role === 'admin' ? [
+      { id: 'admin_dashboard' as NavigationPage, label: 'Admin Console', icon: ShieldCheck, badge: 'Super Admin' }
+    ] : []),
   ];
 
   const handleNavClick = (id: NavigationPage) => {

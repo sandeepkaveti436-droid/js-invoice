@@ -344,4 +344,5 @@ export type NavigationPage =
   | 'payments'
   | 'reports'
   | 'templates'
-  | 'settings';
+  | 'settings'
+  | 'admin_dashboard';

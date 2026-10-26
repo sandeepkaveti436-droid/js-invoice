@@ -80,6 +80,15 @@ interface AppContextType {
   recordPayment: (payment: Omit<PaymentRecord, 'id' | 'createdAt'>) => { payment: PaymentRecord; invoice: Invoice };
   updateSettings: (settings: AppSettings) => void;
   clearMyData: () => void;
+
+  // Admin Authority & User Management
+  adminMetrics: ReturnType<typeof StorageService.getAdminPlatformMetrics> | null;
+  refreshAdminMetrics: () => void;
+  adminCreateUser: (payload: { name: string; email: string; password?: string; phone?: string; companyName?: string; role?: 'user' | 'admin'; autoVerify?: boolean }) => User;
+  adminDeleteUser: (userId: string) => boolean;
+  adminToggleUserStatus: (userId: string) => boolean;
+  adminVerifyUser: (userId: string) => boolean;
+  adminResetUserPassword: (userId: string, newPass: string) => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -163,6 +172,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const login = async (email: string, pass?: string): Promise<User> => {
     const user = StorageService.loginUser(email, pass);
     setCurrentUser(user);
+    if (user.role === 'admin') {
+      setCurrentView('admin_dashboard');
+    }
     return user;
   };
 
@@ -391,6 +403,72 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  // Admin Telemetry & User Management
+  const [adminMetrics, setAdminMetrics] = useState<ReturnType<typeof StorageService.getAdminPlatformMetrics> | null>(() => {
+    return StorageService.getCurrentUser()?.role === 'admin' ? StorageService.getAdminPlatformMetrics() : null;
+  });
+
+  const refreshAdminMetrics = () => {
+    setAdminMetrics(StorageService.getAdminPlatformMetrics());
+  };
+
+  const handleAdminCreateUser = (payload: {
+    name: string;
+    email: string;
+    password?: string;
+    phone?: string;
+    companyName?: string;
+    role?: 'user' | 'admin';
+    autoVerify?: boolean;
+  }): User => {
+    const newUser = StorageService.adminCreateUser(payload);
+    refreshAdminMetrics();
+    showToast(`User "${newUser.name}" created successfully!`, 'success');
+    return newUser;
+  };
+
+  const handleAdminDeleteUser = (userId: string): boolean => {
+    try {
+      const ok = StorageService.adminDeleteUser(userId);
+      refreshAdminMetrics();
+      showToast('User account and related data removed permanently.', 'info');
+      return ok;
+    } catch (e: any) {
+      showToast(e.message || 'Cannot delete user', 'error');
+      return false;
+    }
+  };
+
+  const handleAdminToggleUserStatus = (userId: string): boolean => {
+    try {
+      const ok = StorageService.adminToggleUserStatus(userId);
+      refreshAdminMetrics();
+      showToast('User account status updated.', 'info');
+      return ok;
+    } catch (e: any) {
+      showToast(e.message || 'Cannot update user status', 'error');
+      return false;
+    }
+  };
+
+  const handleAdminVerifyUser = (userId: string): boolean => {
+    const ok = StorageService.adminVerifyUser(userId);
+    refreshAdminMetrics();
+    showToast('User account verified & activated.', 'success');
+    return ok;
+  };
+
+  const handleAdminResetUserPassword = (userId: string, newPass: string): boolean => {
+    try {
+      const ok = StorageService.adminResetUserPassword(userId, newPass);
+      showToast('User password updated successfully.', 'success');
+      return ok;
+    } catch (e: any) {
+      showToast(e.message || 'Password reset failed', 'error');
+      return false;
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -445,6 +523,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         recordPayment: handleRecordPayment,
         updateSettings: handleUpdateSettings,
         clearMyData: handleClearMyData,
+        adminMetrics,
+        refreshAdminMetrics,
+        adminCreateUser: handleAdminCreateUser,
+        adminDeleteUser: handleAdminDeleteUser,
+        adminToggleUserStatus: handleAdminToggleUserStatus,
+        adminVerifyUser: handleAdminVerifyUser,
+        adminResetUserPassword: handleAdminResetUserPassword,
       }}
     >
       {children}

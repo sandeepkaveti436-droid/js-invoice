@@ -864,6 +864,27 @@ export const AuthPage: React.FC = () => {
                 </button>
               </p>
             )}
+
+            {/* Super Admin Quick Access Pill */}
+            {mode === 'signin' && (
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50 p-2.5 rounded-xl text-[11px] text-slate-500">
+                <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Super Admin Portal</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@jsinvoice.com');
+                    setPassword('Admin@JS2026!');
+                    setErrorMessage(null);
+                  }}
+                  className="font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200 transition-colors"
+                >
+                  Fill Admin Credentials
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Social Auth & Quick Demo Testing Shortcuts */}
