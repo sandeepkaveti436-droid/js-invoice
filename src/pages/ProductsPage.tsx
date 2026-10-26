@@ -15,7 +15,8 @@ import { Product } from '../types';
 import { formatMoney } from '../utils/currency';
 
 export const ProductsPage: React.FC = () => {
-  const { products, saveProduct, deleteProduct, openCreateInvoice } = useApp();
+  const { products, saveProduct, deleteProduct, openCreateInvoice, settings } = useApp();
+  const defaultCurr = settings?.invoiceDefaults?.defaultCurrency || 'INR';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -175,7 +176,7 @@ export const ProductsPage: React.FC = () => {
                   <td className="py-3.5 px-3 text-center font-mono text-slate-600">{p.unit}</td>
 
                   <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
-                    {formatMoney(p.unitPrice, 'USD')}
+                    {formatMoney(p.unitPrice, defaultCurr)}
                   </td>
 
                   <td className="py-3.5 px-3 text-right font-mono text-slate-600">{p.defaultTaxRate}%</td>

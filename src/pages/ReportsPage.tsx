@@ -26,7 +26,8 @@ import { useApp } from '../context/AppContext';
 import { formatMoney } from '../utils/currency';
 
 export const ReportsPage: React.FC = () => {
-  const { invoices, payments, clients, showToast } = useApp();
+  const { invoices, payments, clients, settings, showToast } = useApp();
+  const defaultCurr = settings?.invoiceDefaults?.defaultCurrency || 'INR';
 
   // Summary Metrics
   const summary = useMemo(() => {
@@ -131,7 +132,7 @@ export const ReportsPage: React.FC = () => {
             Total Billed Gross
           </span>
           <span className="text-2xl font-bold font-mono text-slate-900">
-            {formatMoney(summary.totalInvoiced, 'USD')}
+            {formatMoney(summary.totalInvoiced, defaultCurr)}
           </span>
           <p className="text-xs text-slate-400 mt-2">All issued invoices</p>
         </div>
@@ -141,7 +142,7 @@ export const ReportsPage: React.FC = () => {
             Collected Cash
           </span>
           <span className="text-2xl font-bold font-mono text-emerald-700">
-            {formatMoney(summary.totalPaid, 'USD')}
+            {formatMoney(summary.totalPaid, defaultCurr)}
           </span>
           <p className="text-xs text-emerald-600 font-medium mt-2">
             {Math.round((summary.totalPaid / (summary.totalInvoiced || 1)) * 100)}% realization rate
@@ -153,7 +154,7 @@ export const ReportsPage: React.FC = () => {
             Receivables Balance
           </span>
           <span className="text-2xl font-bold font-mono text-amber-800">
-            {formatMoney(summary.totalOutstanding, 'USD')}
+            {formatMoney(summary.totalOutstanding, defaultCurr)}
           </span>
           <p className="text-xs text-slate-400 mt-2">Awaiting customer clearance</p>
         </div>
@@ -163,7 +164,7 @@ export const ReportsPage: React.FC = () => {
             Tax Collected Liability
           </span>
           <span className="text-2xl font-bold font-mono text-indigo-700">
-            {formatMoney(summary.totalTaxCollected, 'USD')}
+            {formatMoney(summary.totalTaxCollected, defaultCurr)}
           </span>
           <p className="text-xs text-slate-400 mt-2">Sales tax & GST to remit</p>
         </div>
@@ -231,7 +232,7 @@ export const ReportsPage: React.FC = () => {
                     <tr key={idx} className="hover:bg-slate-50">
                       <td className="py-3 px-3 font-medium text-slate-800">{t.rate}</td>
                       <td className="py-3 px-3 text-right font-mono font-bold text-indigo-700">
-                        {formatMoney(t.taxAmount, 'USD')}
+                        {formatMoney(t.taxAmount, defaultCurr)}
                       </td>
                     </tr>
                   ))}
@@ -242,7 +243,7 @@ export const ReportsPage: React.FC = () => {
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex justify-between font-bold text-slate-900 mt-4">
             <span>Total Statutory Taxes:</span>
-            <span className="font-mono">{formatMoney(summary.totalTaxCollected, 'USD')}</span>
+            <span className="font-mono">{formatMoney(summary.totalTaxCollected, defaultCurr)}</span>
           </div>
         </div>
       </div>

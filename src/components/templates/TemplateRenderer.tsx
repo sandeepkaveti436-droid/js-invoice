@@ -42,10 +42,8 @@ export const TemplateRenderer: React.FC<Props> = ({
     }
   };
 
-  const watermarkText = customization?.watermarkText || 
-    (invoice.status === 'paid' ? 'PAID' : 
-     invoice.status === 'overdue' ? 'OVERDUE' : 
-     invoice.status === 'draft' ? 'DRAFT' : '');
+  // Do not show intrusive "DRAFT" watermark on invoices
+  const watermarkText = customization?.watermarkText || '';
 
   return (
     <div 

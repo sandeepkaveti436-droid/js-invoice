@@ -80,7 +80,7 @@ export const QuoteEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       title: 'Project Estimate',
       issueDate: getTodayDateString(),
       expiryDate: getDateAfterDays(15),
-      currency: 'USD',
+      currency: settings.invoiceDefaults.defaultCurrency || 'INR',
       business: JSON.parse(JSON.stringify(settings.business)),
       client: clients[0] || {
         id: 'cli_default',

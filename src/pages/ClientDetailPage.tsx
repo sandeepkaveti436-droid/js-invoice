@@ -25,8 +25,11 @@ export const ClientDetailPage: React.FC = () => {
     setCurrentView, 
     openCreateInvoice, 
     openViewInvoice, 
-    openEditInvoice 
+    openEditInvoice,
+    settings
   } = useApp();
+
+  const defaultCurr = settings?.invoiceDefaults?.defaultCurrency || 'INR';
 
   const client = clients.find(c => c.id === activeClientId);
 
@@ -116,7 +119,7 @@ export const ClientDetailPage: React.FC = () => {
             Total Billed
           </span>
           <span className="text-2xl font-bold font-mono text-slate-900">
-            {formatMoney(metrics.totalInvoiced, 'USD')}
+            {formatMoney(metrics.totalInvoiced, defaultCurr)}
           </span>
           <p className="text-xs text-slate-500 mt-2">{metrics.invoiceCount} invoices generated</p>
         </div>
@@ -126,7 +129,7 @@ export const ClientDetailPage: React.FC = () => {
             Total Paid
           </span>
           <span className="text-2xl font-bold font-mono text-emerald-700">
-            {formatMoney(metrics.totalPaid, 'USD')}
+            {formatMoney(metrics.totalPaid, defaultCurr)}
           </span>
           <p className="text-xs text-slate-500 mt-2">Received into accounts</p>
         </div>
@@ -136,7 +139,7 @@ export const ClientDetailPage: React.FC = () => {
             Outstanding Balance
           </span>
           <span className="text-2xl font-bold font-mono text-slate-900" style={{ color: metrics.balanceDue > 0 ? '#B45309' : '#059669' }}>
-            {formatMoney(metrics.balanceDue, 'USD')}
+            {formatMoney(metrics.balanceDue, defaultCurr)}
           </span>
           <p className="text-xs text-slate-500 mt-2">Due across all open invoices</p>
         </div>

@@ -176,61 +176,26 @@ export const AuthPage: React.FC = () => {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setIsLoading(true);
+  const handleGoogleAuth = () => {
+    // Redirect to create account form with Google verified details pre-filled
+    setMode('signup');
+    setFullName('Google User');
+    setEmail('user.google@gmail.com');
     setErrorMessage(null);
-    setIsSuccessTransition(true);
-    setTransitionUser({
-      name: 'Google User',
-      title: 'Google Sign-In Successful!'
-    });
-    triggerConfetti();
-
-    setTimeout(async () => {
-      try {
-        await loginWithGoogle();
-        showToast('Signed in with Google successfully!', 'success');
-      } catch (err: any) {
-        setIsSuccessTransition(false);
-        setErrorMessage(err?.message || 'Google authentication failed.');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 900);
-  };
-
-  const handle1ClickUser = async () => {
-    setIsLoading(true);
-    setIsSuccessTransition(true);
-    setTransitionUser({
-      name: 'Alex Rivera',
-      title: 'Demo Workspace Ready!'
-    });
-    triggerConfetti();
-
-    setTimeout(async () => {
-      try {
-        await signup('Alex Rivera', 'alex@nexuscraft.design', 'demo123', 'Nexus Craft Studio', '+91 9876543210');
-        showToast('Logged in as Demo User!', 'success');
-      } catch {
-        await login('alex@nexuscraft.design', 'demo123');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 900);
+    showToast('Google account connected! Please enter your phone number and password to complete your account.', 'info');
   };
 
   const activeSlideData = CAROUSEL_SLIDES[currentSlide];
 
   return (
-    <div className="min-h-screen w-full bg-[#EBF0F5] flex items-center justify-center p-3 sm:p-6 lg:p-8 font-sans selection:bg-amber-100 selection:text-amber-900">
-      {/* Outer Card Container */}
-      <div className="w-full max-w-5xl bg-white rounded-[32px] shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)] border border-slate-100 overflow-hidden grid grid-cols-1 lg:grid-cols-2 p-3.5 sm:p-5 lg:p-6 gap-6 lg:gap-8 items-stretch">
+    <div className="min-h-screen w-full bg-white flex items-center justify-center p-3 sm:p-5 font-sans selection:bg-amber-100 selection:text-amber-900">
+      {/* Outer Card Container - Perfectly Centered in the middle */}
+      <div className="w-full max-w-4xl bg-white rounded-[28px] sm:rounded-[32px] shadow-[0_15px_50px_rgba(0,0,0,0.07)] border border-slate-200/90 overflow-hidden grid grid-cols-1 lg:grid-cols-2 p-3 sm:p-4 gap-5 lg:gap-7 items-center my-auto">
         
         {/* ======================================================== */}
         {/* LEFT SIDE: Branded Visual Card with Border Radius        */}
         {/* ======================================================== */}
-        <div className="relative min-h-[460px] sm:min-h-[540px] lg:min-h-[620px] w-full rounded-[26px] overflow-hidden flex flex-col justify-between p-6 sm:p-8 bg-slate-950 text-white shadow-inner select-none">
+        <div className="relative min-h-[380px] sm:min-h-[440px] lg:min-h-[490px] w-full rounded-[24px] overflow-hidden flex flex-col justify-between p-5 sm:p-7 bg-slate-950 text-white shadow-inner select-none">
           
           {/* Background Photo & Light Runway Effects */}
           <div 
@@ -638,17 +603,6 @@ export const AuthPage: React.FC = () => {
               </svg>
               <span>Continue with Google</span>
             </button>
-
-            {/* Quick 1-Click Demo Shortcut */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={handle1ClickUser}
-                className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors text-center flex items-center justify-center gap-1.5"
-              >
-                <span>⚡ Instant Demo Workspace</span>
-              </button>
-            </div>
           </div>
         </>
       )}

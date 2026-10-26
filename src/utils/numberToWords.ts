@@ -20,7 +20,7 @@ function convertUnderThousand(num: number): string {
 /**
  * Converts a monetary number to words (e.g. 1250.50 -> "One Thousand Two Hundred Fifty Dollars and Fifty Cents Only")
  */
-export function numberToWords(amount: number, currencyCode = 'USD'): string {
+export function numberToWords(amount: number, currencyCode = 'INR'): string {
   const safeAmount = Math.max(0, Math.round(amount * 100) / 100);
   const integerPart = Math.floor(safeAmount);
   const decimalPart = Math.round((safeAmount - integerPart) * 100);

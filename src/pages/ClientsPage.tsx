@@ -24,8 +24,11 @@ export const ClientsPage: React.FC = () => {
     saveClient, 
     deleteClient, 
     openClientDetail, 
-    openCreateInvoice 
+    openCreateInvoice,
+    settings
   } = useApp();
+
+  const defaultCurr = settings?.invoiceDefaults?.defaultCurrency || 'INR';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -216,15 +219,15 @@ export const ClientsPage: React.FC = () => {
                 <div className="mt-4 p-3 bg-slate-50 rounded-xl grid grid-cols-3 gap-2 text-center text-xs">
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Invoiced</span>
-                    <span className="font-mono font-bold text-slate-800">{formatMoney(metrics.totalInvoiced, 'USD')}</span>
+                    <span className="font-mono font-bold text-slate-800">{formatMoney(metrics.totalInvoiced, defaultCurr)}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Paid</span>
-                    <span className="font-mono font-bold text-emerald-600">{formatMoney(metrics.totalPaid, 'USD')}</span>
+                    <span className="font-mono font-bold text-emerald-600">{formatMoney(metrics.totalPaid, defaultCurr)}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Balance</span>
-                    <span className="font-mono font-bold text-slate-900">{formatMoney(metrics.balanceDue, 'USD')}</span>
+                    <span className="font-mono font-bold text-slate-900">{formatMoney(metrics.balanceDue, defaultCurr)}</span>
                   </div>
                 </div>
               </div>

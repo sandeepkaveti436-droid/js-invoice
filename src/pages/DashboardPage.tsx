@@ -38,6 +38,7 @@ export const DashboardPage: React.FC = () => {
     invoices, 
     quotes, 
     clients, 
+    settings,
     openCreateInvoice, 
     openCreateQuote, 
     openEditInvoice, 
@@ -47,6 +48,7 @@ export const DashboardPage: React.FC = () => {
   } = useApp();
 
   const [chartRange, setChartRange] = useState<'6m' | '12m'>('6m');
+  const defaultCurr = settings?.invoiceDefaults?.defaultCurrency || 'INR';
 
   // Compute KPI metrics dynamically
   const metrics = useMemo(() => {
@@ -179,7 +181,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold font-mono text-slate-900 tracking-tight">
-            {formatMoney(metrics.totalAmount, 'USD')}
+            {formatMoney(metrics.totalAmount, defaultCurr)}
           </p>
           <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-slate-400">{metrics.totalCount} total billed</span>
@@ -198,7 +200,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold font-mono text-emerald-700 tracking-tight">
-            {formatMoney(metrics.paidAmount, 'USD')}
+            {formatMoney(metrics.paidAmount, defaultCurr)}
           </p>
           <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-slate-400">{metrics.paidCount} settled in full</span>
@@ -217,7 +219,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold font-mono text-amber-800 tracking-tight">
-            {formatMoney(metrics.outstandingAmount, 'USD')}
+            {formatMoney(metrics.outstandingAmount, defaultCurr)}
           </p>
           <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-slate-400">{metrics.outstandingCount} pending receipt</span>
@@ -234,7 +236,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold font-mono text-rose-700 tracking-tight">
-            {formatMoney(metrics.overdueAmount, 'USD')}
+            {formatMoney(metrics.overdueAmount, defaultCurr)}
           </p>
           <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-slate-400">{metrics.overdueCount} require follow-up</span>
@@ -280,9 +282,9 @@ export const DashboardPage: React.FC = () => {
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="month" stroke="#94A3B8" fontSize={11} tickLine={false} />
-                <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} tickFormatter={val => `$${val}`} />
+                <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} tickFormatter={val => `₹${val}`} />
                 <Tooltip
-                  formatter={(value: any) => [`$${Number(value).toLocaleString()}`, '']}
+                  formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, '']}
                   contentStyle={{
                     backgroundColor: '#0F172A',
                     borderRadius: '12px',

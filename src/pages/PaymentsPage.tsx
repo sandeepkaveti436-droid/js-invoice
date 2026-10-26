@@ -97,7 +97,7 @@ export const PaymentsPage: React.FC = () => {
             Total Payments Settled
           </span>
           <span className="text-2xl font-bold font-mono text-emerald-700">
-            {formatMoney(totalCollected, 'USD')}
+            {formatMoney(totalCollected, settings?.invoiceDefaults?.defaultCurrency || 'INR')}
           </span>
           <p className="text-xs text-slate-400 mt-1">{payments.length} transactions recorded</p>
         </div>

@@ -51,7 +51,7 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
             )}
 
             <p className="text-xs sm:text-sm italic text-slate-700 font-medium tracking-tight">
-              {defaultTagline}
+              {invoice.notes || defaultTagline}
             </p>
           </div>
 
@@ -362,7 +362,7 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
               Brand Name : <span className="font-bold text-slate-800">{invoice.business?.name || 'Sky Nova Digitals'}</span>
             </p>
             <p className="text-[11px] italic text-slate-500 mt-0.5">
-              Tag Line : <span className="italic">{defaultTagline}</span>
+              Tag Line : <span className="italic">{invoice.notes || defaultTagline}</span>
             </p>
           </div>
 

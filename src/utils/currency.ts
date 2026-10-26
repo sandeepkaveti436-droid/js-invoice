@@ -1,30 +1,30 @@
 import { CurrencyConfig } from '../types';
 
 export const CURRENCIES: Record<string, CurrencyConfig> = {
+  INR: { code: 'INR', name: 'Indian Rupee', symbol: '₹', locale: 'en-IN' },
   USD: { code: 'USD', name: 'US Dollar', symbol: '$', locale: 'en-US' },
   EUR: { code: 'EUR', name: 'Euro', symbol: '€', locale: 'de-DE' },
   GBP: { code: 'GBP', name: 'British Pound', symbol: '£', locale: 'en-GB' },
-  INR: { code: 'INR', name: 'Indian Rupee', symbol: '₹', locale: 'en-IN' },
+  AED: { code: 'AED', name: 'UAE Dirham', symbol: 'AED', locale: 'ar-AE' },
   CAD: { code: 'CAD', name: 'Canadian Dollar', symbol: 'CA$', locale: 'en-CA' },
   AUD: { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', locale: 'en-AU' },
-  JPY: { code: 'JPY', name: 'Japanese Yen', symbol: '¥', locale: 'ja-JP' },
   SGD: { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', locale: 'en-SG' },
-  AED: { code: 'AED', name: 'UAE Dirham', symbol: 'AED', locale: 'ar-AE' },
+  JPY: { code: 'JPY', name: 'Japanese Yen', symbol: '¥', locale: 'ja-JP' },
   CHF: { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF', locale: 'de-CH' },
   CNY: { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', locale: 'zh-CN' },
 };
 
-export const DEFAULT_CURRENCY = 'USD';
+export const DEFAULT_CURRENCY = 'INR';
 
-export function getCurrencyConfig(code: string = 'USD'): CurrencyConfig {
-  return CURRENCIES[code.toUpperCase()] || CURRENCIES.USD;
+export function getCurrencyConfig(code: string = 'INR'): CurrencyConfig {
+  return CURRENCIES[code.toUpperCase()] || CURRENCIES.INR;
 }
 
 /**
  * Formats a monetary number into a localized currency string.
- * Example: formatMoney(1234.5, 'USD') -> "$1,234.50"
+ * Example: formatMoney(1234.5, 'INR') -> "₹1,234.50"
  */
-export function formatMoney(amount: number, currencyCode: string = 'USD'): string {
+export function formatMoney(amount: number, currencyCode: string = 'INR'): string {
   const config = getCurrencyConfig(currencyCode);
   const safeAmount = Number(amount) || 0;
 

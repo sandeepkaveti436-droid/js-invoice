@@ -141,7 +141,7 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       title: settings.invoiceDefaults.title || 'Tax Invoice',
       issueDate: getTodayDateString(),
       dueDate: getDateAfterDays(settings.invoiceDefaults.dueInDays || 30),
-      currency: settings.invoiceDefaults.defaultCurrency || 'USD',
+      currency: settings.invoiceDefaults.defaultCurrency || 'INR',
       poNumber: '',
       referenceNumber: '',
       paymentTerms: settings.invoiceDefaults.paymentTerms || 'Net 30',
