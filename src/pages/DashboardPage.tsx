@@ -34,6 +34,7 @@ import { exportInvoiceToPdf } from '../utils/pdfExport';
 
 export const DashboardPage: React.FC = () => {
   const { 
+    currentUser,
     invoices, 
     quotes, 
     clients, 
@@ -125,10 +126,10 @@ export const DashboardPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Financial Performance
+            {currentUser ? `Welcome back, ${currentUser.name}` : 'Financial Performance'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            Real-time billing analytics, pending collections, and cash flow summary.
+            {currentUser?.companyName ? `${currentUser.companyName} • ` : ''}Real-time billing analytics, pending collections, and cash flow summary.
           </p>
         </div>
 
@@ -394,64 +395,82 @@ export const DashboardPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
-              {recentInvoices.map(inv => {
-                const statusStyle = getInvoiceStatusStyle(inv.status, inv.dueDate);
+              {recentInvoices.length > 0 ? (
+                recentInvoices.map(inv => {
+                  const statusStyle = getInvoiceStatusStyle(inv.status, inv.dueDate);
 
-                return (
-                  <tr key={inv.id} className="hover:bg-slate-50/75 transition-colors group">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                      <button
-                        onClick={() => openViewInvoice(inv.id)}
-                        className="hover:text-indigo-600 hover:underline"
-                      >
-                        {inv.number}
-                      </button>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <p className="font-semibold text-slate-800">
-                        {inv.client?.name || 'Unnamed Client'}
-                      </p>
-                      {inv.client?.companyName && (
-                        <p className="text-[11px] text-slate-400">{inv.client.companyName}</p>
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-3 text-slate-600">{formatDate(inv.issueDate)}</td>
-                    <td className="py-3.5 px-3 text-slate-600">{formatDate(inv.dueDate)}</td>
-
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
-                      {formatMoney(inv.grandTotal, inv.currency)}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-center">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusStyle.badgeClass}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dotClass}`} />
-                        {statusStyle.label}
-                      </span>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                  return (
+                    <tr key={inv.id} className="hover:bg-slate-50/75 transition-colors group">
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
                         <button
                           onClick={() => openViewInvoice(inv.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                          title="View Invoice"
+                          className="hover:text-indigo-600 hover:underline"
                         >
-                          <Eye className="w-4 h-4" />
+                          {inv.number}
                         </button>
-                        <button
-                          onClick={() => openEditInvoice(inv.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                          title="Edit Invoice"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <p className="font-semibold text-slate-800">
+                          {inv.client?.name || 'Unnamed Client'}
+                        </p>
+                        {inv.client?.companyName && (
+                          <p className="text-[11px] text-slate-400">{inv.client.companyName}</p>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-3 text-slate-600">{formatDate(inv.issueDate)}</td>
+                      <td className="py-3.5 px-3 text-slate-600">{formatDate(inv.dueDate)}</td>
+
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
+                        {formatMoney(inv.grandTotal, inv.currency)}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusStyle.badgeClass}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dotClass}`} />
+                          {statusStyle.label}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openViewInvoice(inv.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title="View Invoice"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openEditInvoice(inv.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Edit Invoice"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <FileText className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                    <p className="font-bold text-slate-700 text-sm">No Invoices Yet</p>
+                    <p className="text-xs text-slate-400 mt-0.5 mb-3">
+                      You haven't created any invoices in your JS Invoice account yet.
+                    </p>
+                    <button
+                      onClick={() => openCreateInvoice()}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm shadow-indigo-200"
+                    >
+                      + Create Your First Invoice
+                    </button>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

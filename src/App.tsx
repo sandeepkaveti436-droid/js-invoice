@@ -14,10 +14,12 @@ import { PaymentsPage } from './pages/PaymentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { PublicInvoiceView } from './pages/PublicInvoiceView';
+import { AuthModal } from './components/auth/AuthModal';
 
 const MainViewRouter: React.FC = () => {
-  const { currentView } = useApp();
+  const { currentView, isAdmin } = useApp();
 
   switch (currentView) {
     case 'overview':
@@ -50,16 +52,18 @@ const MainViewRouter: React.FC = () => {
       return <TemplatesPage />;
     case 'settings':
       return <SettingsPage />;
+    case 'admin':
+      return <AdminDashboardPage />;
     default:
       return <DashboardPage />;
   }
 };
 
 export const AppContent: React.FC = () => {
+  const { isAuthModalOpen, setIsAuthModalOpen, currentUser } = useApp();
   const [publicInvoiceId, setPublicInvoiceId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check URL parameters for public invoice share link
     const params = new URLSearchParams(window.location.search);
     if (params.get('view') === 'public_invoice' && params.get('id')) {
       setPublicInvoiceId(params.get('id'));
@@ -81,6 +85,13 @@ export const AppContent: React.FC = () => {
   return (
     <AppLayout>
       <MainViewRouter />
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen || !currentUser}
+        canClose={Boolean(currentUser)}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </AppLayout>
   );
 };

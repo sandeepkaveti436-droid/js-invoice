@@ -87,7 +87,7 @@ export const PublicInvoiceView: React.FC<Props> = ({ invoiceId, onExit }) => {
         <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 border border-slate-200/80 shadow-dropdown flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sticky top-4 z-40">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-              IF
+              JS
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -165,7 +165,7 @@ export const PublicInvoiceView: React.FC<Props> = ({ invoiceId, onExit }) => {
         {/* Security Footer */}
         <div className="text-center text-[11px] text-slate-400 py-4 flex items-center justify-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>Encrypted & Verified Commercial Document • Powered by InvoiceFlow</span>
+          <span>Encrypted & Verified Commercial Document • Powered by JS Invoice</span>
         </div>
       </div>
     </div>

@@ -1,3 +1,20 @@
+export type UserRole = 'admin' | 'user';
+
+export type AuthProvider = 'email' | 'google';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  companyName?: string;
+  avatarUrl?: string;
+  provider: AuthProvider;
+  role: UserRole;
+  createdAt: string;
+  lastLoginAt: string;
+  status: 'active' | 'suspended';
+}
+
 export type InvoiceStatus = 'draft' | 'sent' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
 
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'declined' | 'converted';
@@ -20,7 +37,7 @@ export interface BankDetails {
   bankName: string;
   accountHolder: string;
   accountNumber: string;
-  routingNumber?: string; // Routing / IFSC / Sort Code
+  routingNumber?: string;
   swiftCode?: string;
   iban?: string;
   upiId?: string;
@@ -29,12 +46,13 @@ export interface BankDetails {
 
 export interface BusinessProfile {
   id: string;
+  userId?: string;
   name: string;
   logoUrl?: string;
   email: string;
   phone: string;
   website?: string;
-  taxId?: string; // VAT / GSTIN / EIN
+  taxId?: string;
   stateCode?: string;
   addressLine1: string;
   addressLine2?: string;
@@ -50,6 +68,7 @@ export interface BusinessProfile {
 
 export interface Client {
   id: string;
+  userId?: string;
   name: string;
   companyName?: string;
   email: string;
@@ -60,7 +79,7 @@ export interface Client {
   state: string;
   postalCode: string;
   country: string;
-  taxId?: string; // GSTIN / VAT / Tax ID
+  taxId?: string;
   stateCode?: string;
   currency?: string;
   notes?: string;
@@ -70,11 +89,12 @@ export interface Client {
 
 export interface Product {
   id: string;
+  userId?: string;
   name: string;
   description: string;
   sku?: string;
   category: string;
-  unit: string; // hrs, pcs, days, units, mo
+  unit: string;
   unitPrice: number;
   defaultTaxRate: number;
   status: 'active' | 'archived';
@@ -86,7 +106,7 @@ export interface InvoiceItem {
   productId?: string;
   name: string;
   description: string;
-  hsnSacCode?: string; // For GST Tax Invoice
+  hsnSacCode?: string;
   quantity: number;
   unit: string;
   unitPrice: number;
@@ -107,7 +127,7 @@ export interface TaxBreakdown {
 }
 
 export interface TemplateCustomization {
-  templateId: 'minimal' | 'modern' | 'freelancer' | 'agency' | 'corporate' | 'gst';
+  templateId: 'modern' | 'minimal' | 'freelancer' | 'agency' | 'corporate' | 'gst';
   accentColor: string;
   fontFamily: 'Inter' | 'Plus Jakarta Sans' | 'Playfair Display' | 'JetBrains Mono' | 'Georgia';
   logoPlacement: 'left' | 'center' | 'right';
@@ -137,6 +157,7 @@ export interface FieldVisibilityToggles {
 
 export interface Invoice {
   id: string;
+  userId?: string;
   number: string;
   prefix: string;
   title: string;
@@ -145,7 +166,7 @@ export interface Invoice {
   currency: string;
   poNumber?: string;
   referenceNumber?: string;
-  paymentTerms: string; // e.g. "Net 30", "Due on Receipt", etc.
+  paymentTerms: string;
   
   business: BusinessProfile;
   client: Client;
@@ -160,7 +181,7 @@ export interface Invoice {
   invoiceDiscount: number;
   invoiceDiscountType: DiscountType;
   shippingFee: number;
-  withholdingTaxRate: number; // e.g. 2% or 10% TDS
+  withholdingTaxRate: number;
   
   notes: string;
   terms: string;
@@ -172,7 +193,6 @@ export interface Invoice {
   authorizedSignatoryName?: string;
   footerText: string;
   
-  // Calculated financial aggregates
   subtotal: number;
   lineDiscountTotal: number;
   invoiceDiscountAmount: number;
@@ -198,6 +218,7 @@ export interface Invoice {
 
 export interface Quote {
   id: string;
+  userId?: string;
   number: string;
   prefix: string;
   title: string;
@@ -239,6 +260,7 @@ export interface Quote {
 
 export interface PaymentRecord {
   id: string;
+  userId?: string;
   invoiceId: string;
   invoiceNumber: string;
   clientId: string;
@@ -254,6 +276,7 @@ export interface PaymentRecord {
 
 export interface ActivityItem {
   id: string;
+  userId?: string;
   type: 'invoice_created' | 'invoice_sent' | 'payment_received' | 'invoice_paid' | 'quote_created' | 'quote_converted' | 'client_added';
   title: string;
   description: string;
@@ -263,6 +286,7 @@ export interface ActivityItem {
 }
 
 export interface AppSettings {
+  userId?: string;
   business: BusinessProfile;
   invoiceDefaults: {
     prefix: string;
@@ -316,4 +340,5 @@ export type NavigationPage =
   | 'payments'
   | 'reports'
   | 'templates'
-  | 'settings';
+  | 'settings'
+  | 'admin';

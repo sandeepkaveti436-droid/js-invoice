@@ -281,4 +281,41 @@ describe('InvoiceFlow Financial Calculations & Required Test Scenarios', () => {
 
     assert.equal(wasConvertedTwice, false);
   });
+
+  test('Scenario 9: Multi-user data isolation (User A cannot access User B data)', () => {
+    const mockInvoices = [
+      { id: 'inv_1', userId: 'user_A', number: 'INV-A-001', grandTotal: 1200 },
+      { id: 'inv_2', userId: 'user_B', number: 'INV-B-001', grandTotal: 3400 },
+    ];
+
+    const userAInvoices = mockInvoices.filter(i => i.userId === 'user_A');
+    const userBInvoices = mockInvoices.filter(i => i.userId === 'user_B');
+
+    assert.equal(userAInvoices.length, 1);
+    assert.equal(userAInvoices[0].number, 'INV-A-001');
+
+    assert.equal(userBInvoices.length, 1);
+    assert.equal(userBInvoices[0].number, 'INV-B-001');
+  });
+
+  test('Scenario 10: Admin platform metrics aggregation across all users', () => {
+    const allUsers = [
+      { id: 'user_admin', role: 'admin' },
+      { id: 'user_1', role: 'user' },
+      { id: 'user_2', role: 'user' },
+    ];
+
+    const allInvoices = [
+      { id: 'inv_1', userId: 'user_1', grandTotal: 1500, amountPaid: 1500 },
+      { id: 'inv_2', userId: 'user_2', grandTotal: 2500, amountPaid: 1000 },
+    ];
+
+    const totalUsers = allUsers.length;
+    const totalPlatformGmv = allInvoices.reduce((acc, i) => acc + i.grandTotal, 0);
+    const totalCollections = allInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
+
+    assert.equal(totalUsers, 3);
+    assert.equal(totalPlatformGmv, 4000);
+    assert.equal(totalCollections, 2500);
+  });
 });

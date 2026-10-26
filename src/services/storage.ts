@@ -1,4 +1,5 @@
 import { 
+  User,
   Invoice, 
   Quote, 
   Client, 
@@ -14,13 +15,15 @@ import { calculateInvoice } from '../utils/calculator';
 import { generateInvoiceNumber, generateQuoteNumber, getDateAfterDays, getTodayDateString } from '../utils/formatters';
 
 const STORAGE_KEYS = {
-  INVOICES: 'invoiceflow_invoices_v1',
-  QUOTES: 'invoiceflow_quotes_v1',
-  CLIENTS: 'invoiceflow_clients_v1',
-  PRODUCTS: 'invoiceflow_products_v1',
-  PAYMENTS: 'invoiceflow_payments_v1',
-  SETTINGS: 'invoiceflow_settings_v1',
-  ACTIVITIES: 'invoiceflow_activities_v1',
+  USERS: 'js_invoice_users_v2',
+  CURRENT_USER: 'js_invoice_current_user_v2',
+  INVOICES: 'js_invoice_invoices_v2',
+  QUOTES: 'js_invoice_quotes_v2',
+  CLIENTS: 'js_invoice_clients_v2',
+  PRODUCTS: 'js_invoice_products_v2',
+  PAYMENTS: 'js_invoice_payments_v2',
+  SETTINGS: 'js_invoice_settings_v2',
+  ACTIVITIES: 'js_invoice_activities_v2',
 };
 
 export const DEFAULT_TEMPLATE_CONFIG: TemplateCustomization = {
@@ -52,40 +55,42 @@ export const DEFAULT_VISIBILITY: FieldVisibilityToggles = {
   showPaymentInstructions: true,
 };
 
-export const DEFAULT_BUSINESS: BusinessProfile = {
-  id: 'biz_default',
-  name: 'Nexus Craft Studio LLC',
+export const createDefaultBusiness = (user?: Partial<User>): BusinessProfile => ({
+  id: 'biz_' + (user?.id || 'default'),
+  userId: user?.id,
+  name: user?.companyName || user?.name || 'JS Invoice Studio',
   logoUrl: '',
-  email: 'billing@nexuscraft.design',
-  phone: '+1 (555) 234-5678',
-  website: 'https://nexuscraft.design',
-  taxId: 'US-EIN-94-3829102',
-  stateCode: 'CA',
-  addressLine1: '450 Mission Street, Suite 1400',
-  addressLine2: 'SoMa Tech Center',
-  city: 'San Francisco',
-  state: 'California',
-  postalCode: '94105',
+  email: user?.email || 'contact@jsinvoice.com',
+  phone: '',
+  website: '',
+  taxId: '',
+  stateCode: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  state: '',
+  postalCode: '',
   country: 'United States',
   bankDetails: {
-    bankName: 'Silicon Valley Bank / First Republic',
-    accountHolder: 'Nexus Craft Studio LLC',
-    accountNumber: '982348102948',
-    routingNumber: '121000358',
-    swiftCode: 'SVBKUS6S',
+    bankName: '',
+    accountHolder: user?.companyName || user?.name || '',
+    accountNumber: '',
+    routingNumber: '',
+    swiftCode: '',
     iban: '',
     upiId: '',
-    additionalInfo: 'Wire transfers take 1 business day. Please mention invoice number in reference.',
+    additionalInfo: 'Please mention invoice reference during payment.',
   },
-  signatureText: 'Alex Rivera, Managing Director',
+  signatureText: user?.name || 'Authorized Signatory',
   defaultCurrency: 'USD',
-};
+});
 
-export const DEFAULT_SETTINGS: AppSettings = {
-  business: DEFAULT_BUSINESS,
+export const createDefaultSettings = (user?: Partial<User>): AppSettings => ({
+  userId: user?.id,
+  business: createDefaultBusiness(user),
   invoiceDefaults: {
     prefix: 'INV-2026-',
-    nextNumber: 6,
+    nextNumber: 1,
     title: 'Tax Invoice',
     paymentTerms: 'Net 30',
     dueInDays: 30,
@@ -93,8 +98,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     defaultTaxRate: 10,
     pricingMode: 'exclusive',
     gstEnabled: false,
-    defaultNotes: 'Thank you for your business. We truly appreciate the opportunity to collaborate!',
-    defaultTerms: 'Payment is due within the stipulated terms. Overdue accounts are subject to a service fee of 1.5% per month. Work remains property of Nexus Craft until fully settled.',
+    defaultNotes: 'Thank you for your business. We appreciate collaborating with you!',
+    defaultTerms: 'Payment is due within 30 days of invoice date. Overdue balances may incur a 1.5% late fee.',
     defaultTemplate: 'modern',
     accentColor: '#4F46E5',
   },
@@ -104,818 +109,35 @@ export const DEFAULT_SETTINGS: AppSettings = {
     sidebarCollapsed: false,
   },
   emailConfig: {
-    senderName: 'Nexus Craft Billing',
-    senderEmail: 'invoicing@nexuscraft.design',
-    replyTo: 'support@nexuscraft.design',
+    senderName: user?.companyName || 'JS Invoice Billing',
+    senderEmail: user?.email || 'billing@jsinvoice.com',
+    replyTo: user?.email || 'support@jsinvoice.com',
     apiKey: '',
     provider: 'sandbox',
-    invoiceSubjectTemplate: 'Invoice {invoice_number} from Nexus Craft Studio',
-    invoiceBodyTemplate: 'Hi {client_name},\n\nPlease find attached invoice {invoice_number} for {total_amount}.\nDue date: {due_date}.\n\nThank you for choosing Nexus Craft!\nBest regards,\nNexus Craft Billing Team',
+    invoiceSubjectTemplate: 'Invoice {invoice_number} from ' + (user?.companyName || 'JS Invoice'),
+    invoiceBodyTemplate: 'Hi {client_name},\n\nPlease find attached invoice {invoice_number} for {total_amount}.\nDue date: {due_date}.\n\nThank you for choosing JS Invoice!\nBest regards,\n' + (user?.name || 'Billing Team'),
   },
   paymentGatewayConfig: {
     enabled: false,
     provider: 'stripe',
-    publishableKey: 'pk_test_sample_key_demo_51J',
+    publishableKey: '',
     testMode: true,
   },
-};
+});
 
-const SEED_CLIENTS: Client[] = [
+// Built-in Admin Account for Platform Management
+const SEED_USERS: User[] = [
   {
-    id: 'cli_1',
-    name: 'Sarah Jenkins',
-    companyName: 'Acme Cloud Technologies',
-    email: 'sarah.jenkins@acmecloud.io',
-    phone: '+1 (415) 890-1200',
-    addressLine1: '789 Market Street, Floor 8',
-    city: 'San Francisco',
-    state: 'CA',
-    postalCode: '94103',
-    country: 'United States',
-    taxId: 'US-EIN-45-9871234',
-    currency: 'USD',
-    notes: 'Key enterprise account. Preferred Net 30 terms.',
-    createdAt: '2026-01-10T08:00:00Z',
-  },
-  {
-    id: 'cli_2',
-    name: 'Marcus Aurelius Vance',
-    companyName: 'Vance Capital Partners',
-    email: 'm.vance@vancecapital.co.uk',
-    phone: '+44 20 7946 0991',
-    addressLine1: '25 Bank Street, Canary Wharf',
-    city: 'London',
-    state: 'Greater London',
-    postalCode: 'E14 5JP',
-    country: 'United Kingdom',
-    taxId: 'GB-VAT-992-8192-34',
-    currency: 'GBP',
-    notes: 'Financial consulting and quarterly dashboards.',
-    createdAt: '2026-01-15T10:30:00Z',
-  },
-  {
-    id: 'cli_3',
-    name: 'Elena Rostova',
-    companyName: 'Nordic Light Studio',
-    email: 'elena@nordiclight.design',
-    phone: '+49 30 555 3829',
-    addressLine1: 'Torstraße 142',
-    city: 'Berlin',
-    state: 'Berlin',
-    postalCode: '10119',
-    country: 'Germany',
-    taxId: 'DE-302918234',
-    currency: 'EUR',
-    notes: 'E-commerce UI redesign contract.',
-    createdAt: '2026-02-01T14:15:00Z',
-  },
-  {
-    id: 'cli_4',
-    name: 'Rajesh Sharma',
-    companyName: 'Zenith Infotech Pvt Ltd',
-    email: 'rajesh.sharma@zenithinfo.in',
-    phone: '+91 98200 45678',
-    addressLine1: 'Block B, Cyber City, Phase III',
-    city: 'Gurugram',
-    state: 'Haryana',
-    postalCode: '122002',
-    country: 'India',
-    taxId: '06AAACZ1234F1Z8',
-    stateCode: '06',
-    currency: 'INR',
-    notes: 'Requires GST Tax Invoice with CGST & SGST separation.',
-    createdAt: '2026-02-10T11:00:00Z',
-  },
-  {
-    id: 'cli_5',
-    name: 'David Kim',
-    companyName: 'K-Pulse Media Group',
-    email: 'david@kpulse.co',
-    phone: '+1 (212) 555-0199',
-    addressLine1: '120 Broadway, Suite 2200',
-    city: 'New York',
-    state: 'NY',
-    postalCode: '10271',
-    country: 'United States',
-    taxId: 'US-EIN-12-8374621',
-    currency: 'USD',
-    notes: 'Monthly video production and branding retainer.',
-    createdAt: '2026-02-18T09:20:00Z',
-  },
-];
-
-const SEED_PRODUCTS: Product[] = [
-  {
-    id: 'prod_1',
-    name: 'UI/UX Design System & Prototyping',
-    description: 'High-fidelity Figma components, design tokens, interactive micro-interactions, responsive design.',
-    sku: 'SRV-DS-01',
-    category: 'Design',
-    unit: 'hrs',
-    unitPrice: 125,
-    defaultTaxRate: 10,
-    status: 'active',
+    id: 'user_admin',
+    name: 'JS Invoice Admin',
+    email: 'admin@jsinvoice.com',
+    companyName: 'JS Invoice Operations Ltd',
+    avatarUrl: '',
+    provider: 'email',
+    role: 'admin',
     createdAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: 'prod_2',
-    name: 'Full-Stack React & Node Architecture',
-    description: 'Scalable frontend engineering with TypeScript, API integrations, and database performance tuning.',
-    sku: 'SRV-DEV-02',
-    category: 'Engineering',
-    unit: 'hrs',
-    unitPrice: 150,
-    defaultTaxRate: 10,
+    lastLoginAt: new Date().toISOString(),
     status: 'active',
-    createdAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: 'prod_3',
-    name: 'Enterprise Cloud Deployment & CI/CD',
-    description: 'AWS / Docker / Kubernetes infrastructure setup, automated testing pipeline, and security auditing.',
-    sku: 'SRV-OPS-03',
-    category: 'DevOps',
-    unit: 'project',
-    unitPrice: 3200,
-    defaultTaxRate: 10,
-    status: 'active',
-    createdAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: 'prod_4',
-    name: 'Monthly Maintenance & Support Retainer',
-    description: '24/7 uptime monitoring, SLA support, bug fixes, minor feature releases, and dependency updates.',
-    sku: 'RET-MNT-04',
-    category: 'Retainer',
-    unit: 'mo',
-    unitPrice: 1800,
-    defaultTaxRate: 10,
-    status: 'active',
-    createdAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: 'prod_5',
-    name: 'Brand Identity & Visual Guidelines',
-    description: 'Logo mark, typography pairings, color palette, stationery suite, and 40-page brand playbook.',
-    sku: 'PKG-BRD-05',
-    category: 'Branding',
-    unit: 'package',
-    unitPrice: 4500,
-    defaultTaxRate: 10,
-    status: 'active',
-    createdAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: 'prod_6',
-    name: 'SEO & Performance Optimization Audit',
-    description: 'Core Web Vitals remediation, lighthouse 95+ score achievement, semantic schema markup.',
-    sku: 'SRV-SEO-06',
-    category: 'Marketing',
-    unit: 'audit',
-    unitPrice: 950,
-    defaultTaxRate: 10,
-    status: 'active',
-    createdAt: '2026-01-01T00:00:00Z',
-  },
-];
-
-function buildSeedInvoices(): Invoice[] {
-  // 1. Paid Invoice
-  const calc1 = calculateInvoice({
-    items: [
-      {
-        id: 'it_1',
-        name: 'UI/UX Design System & Prototyping',
-        description: 'Complete dashboard Figma components and responsive layouts for mobile and web.',
-        quantity: 40,
-        unit: 'hrs',
-        unitPrice: 125,
-        discount: 5,
-        discountType: 'percentage',
-        taxRate: 8.5,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-      {
-        id: 'it_2',
-        name: 'Full-Stack React & Node Architecture',
-        description: 'Frontend component library scaffolding in React with Tailwind CSS.',
-        quantity: 24,
-        unit: 'hrs',
-        unitPrice: 150,
-        discount: 0,
-        discountType: 'fixed',
-        taxRate: 8.5,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-    ],
-    pricingMode: 'exclusive',
-    invoiceDiscount: 200,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    gstEnabled: false,
-    gstType: 'NONE',
-    amountPaid: 8856.38,
-  });
-
-  const inv1: Invoice = {
-    id: 'inv_1',
-    number: 'INV-2026-001',
-    prefix: 'INV-2026-',
-    title: 'Tax Invoice',
-    issueDate: '2026-01-15',
-    dueDate: '2026-02-14',
-    currency: 'USD',
-    poNumber: 'PO-ACME-9021',
-    referenceNumber: 'REF-2026-01',
-    paymentTerms: 'Net 30',
-    business: DEFAULT_BUSINESS,
-    client: SEED_CLIENTS[0],
-    ...calc1,
-    pricingMode: 'exclusive',
-    gstEnabled: false,
-    gstType: 'NONE',
-    invoiceDiscount: 200,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    notes: 'Thank you for your business. We look forward to Phase 2!',
-    terms: DEFAULT_SETTINGS.invoiceDefaults.defaultTerms,
-    paymentInstructions: 'Please send wire transfer to the bank details below.',
-    bankDetails: DEFAULT_BUSINESS.bankDetails,
-    signatureType: 'text',
-    authorizedSignatoryName: 'Alex Rivera',
-    footerText: 'InvoiceFlow SaaS — Generated electronically & fully compliant.',
-    status: 'paid',
-    templateConfig: {
-      ...DEFAULT_TEMPLATE_CONFIG,
-      templateId: 'modern',
-      accentColor: '#4F46E5',
-    },
-    visibility: DEFAULT_VISIBILITY,
-    createdAt: '2026-01-15T09:00:00Z',
-    updatedAt: '2026-01-20T14:30:00Z',
-    sentAt: '2026-01-15T09:15:00Z',
-    paidAt: '2026-01-20T14:30:00Z',
-  };
-
-  // 2. Partially Paid Invoice
-  const calc2 = calculateInvoice({
-    items: [
-      {
-        id: 'it_3',
-        name: 'Brand Identity & Visual Guidelines',
-        description: 'Complete rebrand package with logo family, vector iconography, and corporate guidelines.',
-        quantity: 1,
-        unit: 'package',
-        unitPrice: 4500,
-        discount: 10,
-        discountType: 'percentage',
-        taxRate: 20,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-      {
-        id: 'it_4',
-        name: 'SEO & Performance Optimization Audit',
-        description: 'Pre-launch web performance tuning and schema validation.',
-        quantity: 1,
-        unit: 'audit',
-        unitPrice: 950,
-        discount: 0,
-        discountType: 'fixed',
-        taxRate: 20,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-    ],
-    pricingMode: 'exclusive',
-    invoiceDiscount: 0,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    gstEnabled: false,
-    gstType: 'NONE',
-    amountPaid: 3000,
-  });
-
-  const inv2: Invoice = {
-    id: 'inv_2',
-    number: 'INV-2026-002',
-    prefix: 'INV-2026-',
-    title: 'Commercial Invoice',
-    issueDate: '2026-02-01',
-    dueDate: getDateAfterDays(14),
-    currency: 'GBP',
-    poNumber: 'VANCE-PR-441',
-    paymentTerms: 'Net 30',
-    business: DEFAULT_BUSINESS,
-    client: SEED_CLIENTS[1],
-    ...calc2,
-    pricingMode: 'exclusive',
-    gstEnabled: false,
-    gstType: 'NONE',
-    invoiceDiscount: 0,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    notes: 'First milestone of 50% deposit received. Remaining balance due upon final asset handover.',
-    terms: DEFAULT_SETTINGS.invoiceDefaults.defaultTerms,
-    paymentInstructions: 'Bank transfer to Nexus Craft UK Sterling account.',
-    bankDetails: DEFAULT_BUSINESS.bankDetails,
-    signatureType: 'text',
-    authorizedSignatoryName: 'Alex Rivera',
-    footerText: 'Registered business in California with UK trading representation.',
-    status: 'partially_paid',
-    templateConfig: {
-      ...DEFAULT_TEMPLATE_CONFIG,
-      templateId: 'corporate',
-      accentColor: '#0F172A',
-    },
-    visibility: DEFAULT_VISIBILITY,
-    createdAt: '2026-02-01T11:00:00Z',
-    updatedAt: '2026-02-05T16:00:00Z',
-    sentAt: '2026-02-01T11:30:00Z',
-  };
-
-  // 3. Sent / Open Invoice
-  const calc3 = calculateInvoice({
-    items: [
-      {
-        id: 'it_5',
-        name: 'Enterprise Cloud Deployment & CI/CD',
-        description: 'Multi-region AWS ECS setup with automated zero-downtime deployment pipelines.',
-        quantity: 1,
-        unit: 'project',
-        unitPrice: 3200,
-        discount: 0,
-        discountType: 'percentage',
-        taxRate: 19,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-      {
-        id: 'it_6',
-        name: 'Monthly Maintenance & Support Retainer',
-        description: 'February 2026 dedicated support retainer.',
-        quantity: 1,
-        unit: 'mo',
-        unitPrice: 1800,
-        discount: 0,
-        discountType: 'percentage',
-        taxRate: 19,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-    ],
-    pricingMode: 'exclusive',
-    invoiceDiscount: 5,
-    invoiceDiscountType: 'percentage',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    gstEnabled: false,
-    gstType: 'NONE',
-    amountPaid: 0,
-  });
-
-  const inv3: Invoice = {
-    id: 'inv_3',
-    number: 'INV-2026-003',
-    prefix: 'INV-2026-',
-    title: 'Tax Invoice',
-    issueDate: '2026-02-15',
-    dueDate: getDateAfterDays(10),
-    currency: 'EUR',
-    paymentTerms: 'Net 15',
-    business: DEFAULT_BUSINESS,
-    client: SEED_CLIENTS[2],
-    ...calc3,
-    pricingMode: 'exclusive',
-    gstEnabled: false,
-    gstType: 'NONE',
-    invoiceDiscount: 5,
-    invoiceDiscountType: 'percentage',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    notes: 'EU reverse charge rules may apply if VAT ID is validated.',
-    terms: DEFAULT_SETTINGS.invoiceDefaults.defaultTerms,
-    paymentInstructions: 'SEPA Euro transfer accepted directly to IBAN.',
-    bankDetails: DEFAULT_BUSINESS.bankDetails,
-    signatureType: 'text',
-    authorizedSignatoryName: 'Alex Rivera',
-    footerText: 'Thank you for your business.',
-    status: 'sent',
-    templateConfig: {
-      ...DEFAULT_TEMPLATE_CONFIG,
-      templateId: 'freelancer',
-      accentColor: '#D97706',
-    },
-    visibility: DEFAULT_VISIBILITY,
-    createdAt: '2026-02-15T10:00:00Z',
-    updatedAt: '2026-02-15T10:30:00Z',
-    sentAt: '2026-02-15T10:30:00Z',
-  };
-
-  // 4. Overdue Invoice
-  const calc4 = calculateInvoice({
-    items: [
-      {
-        id: 'it_7',
-        name: 'UI/UX Design System & Prototyping',
-        description: 'Interactive high-fidelity prototypes and user testing sessions.',
-        quantity: 18,
-        unit: 'hrs',
-        unitPrice: 125,
-        discount: 0,
-        discountType: 'percentage',
-        taxRate: 8.875,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-    ],
-    pricingMode: 'exclusive',
-    invoiceDiscount: 0,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    gstEnabled: false,
-    gstType: 'NONE',
-    amountPaid: 0,
-  });
-
-  const inv4: Invoice = {
-    id: 'inv_4',
-    number: 'INV-2026-004',
-    prefix: 'INV-2026-',
-    title: 'Tax Invoice',
-    issueDate: '2026-01-05',
-    dueDate: '2026-01-25', // Already overdue
-    currency: 'USD',
-    paymentTerms: 'Net 20',
-    business: DEFAULT_BUSINESS,
-    client: SEED_CLIENTS[4],
-    ...calc4,
-    pricingMode: 'exclusive',
-    gstEnabled: false,
-    gstType: 'NONE',
-    invoiceDiscount: 0,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    notes: 'Second reminder sent. Please clear balance immediately to avoid late interest.',
-    terms: DEFAULT_SETTINGS.invoiceDefaults.defaultTerms,
-    paymentInstructions: 'ACH or credit card via invoice link.',
-    bankDetails: DEFAULT_BUSINESS.bankDetails,
-    signatureType: 'text',
-    authorizedSignatoryName: 'Alex Rivera',
-    footerText: 'Payment overdue by 30+ days.',
-    status: 'overdue',
-    templateConfig: {
-      ...DEFAULT_TEMPLATE_CONFIG,
-      templateId: 'agency',
-      accentColor: '#E11D48',
-    },
-    visibility: DEFAULT_VISIBILITY,
-    createdAt: '2026-01-05T09:00:00Z',
-    updatedAt: '2026-01-26T09:00:00Z',
-    sentAt: '2026-01-05T09:15:00Z',
-  };
-
-  // 5. GST Tax Invoice (India)
-  const calc5 = calculateInvoice({
-    items: [
-      {
-        id: 'it_8',
-        name: 'Full-Stack Software Development Services',
-        description: 'Backend microservices architecture and GraphQL API gateway implementation.',
-        hsnSacCode: '998314',
-        quantity: 80,
-        unit: 'hrs',
-        unitPrice: 2500,
-        discount: 0,
-        discountType: 'percentage',
-        taxRate: 18,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-      {
-        id: 'it_9',
-        name: 'Cloud Infrastructure Management & Monitoring',
-        description: 'Server cluster optimization and monthly SLA management.',
-        hsnSacCode: '998313',
-        quantity: 1,
-        unit: 'mo',
-        unitPrice: 45000,
-        discount: 5000,
-        discountType: 'fixed',
-        taxRate: 18,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-    ],
-    pricingMode: 'exclusive',
-    invoiceDiscount: 0,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 2, // 2% TDS
-    gstEnabled: true,
-    gstType: 'CGST_SGST',
-    amountPaid: 0,
-  });
-
-  const inv5: Invoice = {
-    id: 'inv_5',
-    number: 'INV-2026-005',
-    prefix: 'INV-2026-',
-    title: 'GST TAX INVOICE',
-    issueDate: getTodayDateString(),
-    dueDate: getDateAfterDays(30),
-    currency: 'INR',
-    poNumber: 'PO-ZENITH-2026-88',
-    paymentTerms: 'Net 30',
-    business: {
-      ...DEFAULT_BUSINESS,
-      taxId: '06AABCN1234F1Z5',
-      stateCode: '06 - Haryana',
-    },
-    client: SEED_CLIENTS[3],
-    ...calc5,
-    pricingMode: 'exclusive',
-    gstEnabled: true,
-    gstType: 'CGST_SGST',
-    placeOfSupply: '06 - Haryana',
-    reverseCharge: false,
-    invoiceDiscount: 0,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 2,
-    notes: 'Certified that particulars given above are true and correct and amount indicated represents price actually charged.',
-    terms: 'TDS applicable u/s 194J at 2%. Form 16A to be issued at end of financial quarter.',
-    paymentInstructions: 'NEFT / RTGS to current account details shown.',
-    bankDetails: {
-      ...DEFAULT_BUSINESS.bankDetails,
-      bankName: 'HDFC Bank Ltd',
-      routingNumber: 'HDFC0001234 (IFSC)',
-      accountNumber: '50200012345678',
-      upiId: 'nexuscraft@hdfcbank',
-    },
-    signatureType: 'text',
-    authorizedSignatoryName: 'Alex Rivera, Authorized Signatory',
-    footerText: 'This is a computer generated tax invoice and does not require a physical signature.',
-    status: 'draft',
-    templateConfig: {
-      ...DEFAULT_TEMPLATE_CONFIG,
-      templateId: 'gst',
-      accentColor: '#2563EB',
-    },
-    visibility: {
-      ...DEFAULT_VISIBILITY,
-      showItemHsn: true,
-      showWithholding: true,
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  return [inv1, inv2, inv3, inv4, inv5];
-}
-
-const SEED_PAYMENTS: PaymentRecord[] = [
-  {
-    id: 'pay_1',
-    invoiceId: 'inv_1',
-    invoiceNumber: 'INV-2026-001',
-    clientId: 'cli_1',
-    clientName: 'Sarah Jenkins (Acme Cloud)',
-    amount: 8856.38,
-    currency: 'USD',
-    paymentDate: '2026-01-20',
-    method: 'bank_transfer',
-    transactionRef: 'WIRE-SVB-948201',
-    notes: 'Full payment received via Wire Transfer.',
-    createdAt: '2026-01-20T14:30:00Z',
-  },
-  {
-    id: 'pay_2',
-    invoiceId: 'inv_2',
-    invoiceNumber: 'INV-2026-002',
-    clientId: 'cli_2',
-    clientName: 'Marcus Aurelius Vance',
-    amount: 3000.00,
-    currency: 'GBP',
-    paymentDate: '2026-02-05',
-    method: 'credit_card',
-    transactionRef: 'STRIPE-CH-391823',
-    notes: '50% project kickoff retainer.',
-    createdAt: '2026-02-05T16:00:00Z',
-  },
-];
-
-function buildSeedQuotes(): Quote[] {
-  const calcQ1 = calculateInvoice({
-    items: [
-      {
-        id: 'qit_1',
-        name: 'UI/UX Design System & Prototyping',
-        description: 'Brand new mobile banking application workflow designs.',
-        quantity: 50,
-        unit: 'hrs',
-        unitPrice: 125,
-        discount: 0,
-        discountType: 'percentage',
-        taxRate: 10,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-      {
-        id: 'qit_2',
-        name: 'Full-Stack React & Node Architecture',
-        description: 'React Native mobile app implementation with biometric security.',
-        quantity: 60,
-        unit: 'hrs',
-        unitPrice: 150,
-        discount: 5,
-        discountType: 'percentage',
-        taxRate: 10,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-    ],
-    pricingMode: 'exclusive',
-    invoiceDiscount: 500,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    gstEnabled: false,
-    gstType: 'NONE',
-    amountPaid: 0,
-  });
-
-  const quote1: Quote = {
-    id: 'quote_1',
-    number: 'EST-2026-001',
-    prefix: 'EST-2026-',
-    title: 'Project Estimate',
-    issueDate: getTodayDateString(),
-    expiryDate: getDateAfterDays(15),
-    currency: 'USD',
-    referenceNumber: 'PROP-MOBILE-2026',
-    business: DEFAULT_BUSINESS,
-    client: SEED_CLIENTS[0],
-    ...calcQ1,
-    pricingMode: 'exclusive',
-    gstEnabled: false,
-    gstType: 'NONE',
-    invoiceDiscount: 500,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    notes: 'Estimate valid for 15 days from issue date. Deliverables scheduled to begin within 5 days of acceptance.',
-    terms: '50% deposit required upon project commencement. Balance due upon deliverable milestones.',
-    status: 'sent',
-    templateConfig: {
-      ...DEFAULT_TEMPLATE_CONFIG,
-      templateId: 'modern',
-      accentColor: '#4F46E5',
-    },
-    visibility: DEFAULT_VISIBILITY,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  const calcQ2 = calculateInvoice({
-    items: [
-      {
-        id: 'qit_3',
-        name: 'Brand Identity & Visual Guidelines',
-        description: 'Corporate stationery, digital brand book, presentation deck templates.',
-        quantity: 1,
-        unit: 'package',
-        unitPrice: 4500,
-        discount: 0,
-        discountType: 'fixed',
-        taxRate: 20,
-        lineSubtotal: 0,
-        lineDiscount: 0,
-        taxableAmount: 0,
-        lineTax: 0,
-        lineTotal: 0,
-      },
-    ],
-    pricingMode: 'exclusive',
-    invoiceDiscount: 0,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    withholdingTaxRate: 0,
-    gstEnabled: false,
-    gstType: 'NONE',
-    amountPaid: 0,
-  });
-
-  const quote2: Quote = {
-    id: 'quote_2',
-    number: 'EST-2026-002',
-    prefix: 'EST-2026-',
-    title: 'Brand Refresh Quotation',
-    issueDate: '2026-02-10',
-    expiryDate: getDateAfterDays(20),
-    currency: 'GBP',
-    referenceNumber: 'BRAND-Q1-2026',
-    business: DEFAULT_BUSINESS,
-    client: SEED_CLIENTS[1],
-    ...calcQ2,
-    pricingMode: 'exclusive',
-    gstEnabled: false,
-    gstType: 'NONE',
-    invoiceDiscount: 0,
-    invoiceDiscountType: 'fixed',
-    shippingFee: 0,
-    notes: 'Includes 3 revision rounds for brand mark and typography exploration.',
-    terms: 'All IP transfers upon final payment.',
-    status: 'draft',
-    templateConfig: {
-      ...DEFAULT_TEMPLATE_CONFIG,
-      templateId: 'minimal',
-      accentColor: '#111827',
-    },
-    visibility: DEFAULT_VISIBILITY,
-    createdAt: '2026-02-10T12:00:00Z',
-    updatedAt: '2026-02-10T12:00:00Z',
-  };
-
-  return [quote1, quote2];
-}
-
-const SEED_ACTIVITIES: ActivityItem[] = [
-  {
-    id: 'act_1',
-    type: 'payment_received',
-    title: 'Payment Received',
-    description: 'Received $8,856.38 for invoice INV-2026-001 from Acme Cloud Technologies.',
-    timestamp: '2026-01-20T14:30:00Z',
-    entityId: 'inv_1',
-    entityType: 'payment',
-  },
-  {
-    id: 'act_2',
-    type: 'invoice_sent',
-    title: 'Invoice Sent',
-    description: 'Invoice INV-2026-003 (€5,622.75) sent to Nordic Light Studio.',
-    timestamp: '2026-02-15T10:30:00Z',
-    entityId: 'inv_3',
-    entityType: 'invoice',
-  },
-  {
-    id: 'act_3',
-    type: 'payment_received',
-    title: 'Partial Payment Received',
-    description: 'Received £3,000.00 for invoice INV-2026-002 from Vance Capital Partners.',
-    timestamp: '2026-02-05T16:00:00Z',
-    entityId: 'inv_2',
-    entityType: 'payment',
-  },
-  {
-    id: 'act_4',
-    type: 'quote_created',
-    title: 'Quote Created',
-    description: 'Estimate EST-2026-001 ($14,575.00) drafted for Acme Cloud Technologies.',
-    timestamp: '2026-02-20T09:00:00Z',
-    entityId: 'quote_1',
-    entityType: 'quote',
   },
 ];
 
@@ -943,42 +165,112 @@ function writeStorage<T>(key: string, data: T): void {
 }
 
 /**
- * Storage Service - Full relational CRUD & state persistence
+ * Storage Service - Real user isolation and clean state without dummy data
  */
 export const StorageService = {
-  // Initialize storage with seeds if empty
   init() {
-    if (!localStorage.getItem(STORAGE_KEYS.CLIENTS)) {
-      writeStorage(STORAGE_KEYS.CLIENTS, SEED_CLIENTS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
-      writeStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.INVOICES)) {
-      writeStorage(STORAGE_KEYS.INVOICES, buildSeedInvoices());
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.PAYMENTS)) {
-      writeStorage(STORAGE_KEYS.PAYMENTS, SEED_PAYMENTS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.QUOTES)) {
-      writeStorage(STORAGE_KEYS.QUOTES, buildSeedQuotes());
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
-      writeStorage(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.ACTIVITIES)) {
-      writeStorage(STORAGE_KEYS.ACTIVITIES, SEED_ACTIVITIES);
+    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+      writeStorage(STORAGE_KEYS.USERS, SEED_USERS);
     }
   },
 
-  // Invoices
-  getInvoices(): Invoice[] {
+  // Auth & User Management
+  getUsers(): User[] {
     this.init();
-    const invoices = readStorage<Invoice[]>(STORAGE_KEYS.INVOICES, []);
-    
-    // Automatically flag overdue invoices if unpaid and due date passed
+    return readStorage<User[]>(STORAGE_KEYS.USERS, SEED_USERS);
+  },
+
+  getCurrentUser(): User | null {
+    return readStorage<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  },
+
+  setCurrentUser(user: User | null): void {
+    writeStorage(STORAGE_KEYS.CURRENT_USER, user);
+  },
+
+  registerUser(payload: { name: string; email: string; companyName?: string; provider?: 'email' | 'google' }): User {
+    const users = this.getUsers();
+    const existing = users.find(u => u.email.toLowerCase() === payload.email.toLowerCase());
+    if (existing) {
+      // Return existing or update last login
+      existing.lastLoginAt = new Date().toISOString();
+      writeStorage(STORAGE_KEYS.USERS, users);
+      this.setCurrentUser(existing);
+      return existing;
+    }
+
+    const newUser: User = {
+      id: 'user_' + Date.now(),
+      name: payload.name.trim(),
+      email: payload.email.trim().toLowerCase(),
+      companyName: payload.companyName?.trim() || `${payload.name}'s Studio`,
+      provider: payload.provider || 'email',
+      role: 'user',
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      status: 'active',
+    };
+
+    users.push(newUser);
+    writeStorage(STORAGE_KEYS.USERS, users);
+    this.setCurrentUser(newUser);
+
+    // Initialize user's settings
+    const settings = this.getUserSettings(newUser.id);
+    writeStorage(STORAGE_KEYS.SETTINGS + '_' + newUser.id, settings);
+
+    return newUser;
+  },
+
+  loginUser(email: string): User | null {
+    const users = this.getUsers();
+    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!found) return null;
+
+    if (found.status === 'suspended') {
+      throw new Error('This account has been suspended by an administrator.');
+    }
+
+    found.lastLoginAt = new Date().toISOString();
+    writeStorage(STORAGE_KEYS.USERS, users);
+    this.setCurrentUser(found);
+    return found;
+  },
+
+  toggleUserStatus(userId: string): boolean {
+    const users = this.getUsers();
+    const target = users.find(u => u.id === userId);
+    if (!target) return false;
+    target.status = target.status === 'active' ? 'suspended' : 'active';
+    writeStorage(STORAGE_KEYS.USERS, users);
+    return true;
+  },
+
+  deleteUser(userId: string): boolean {
+    let users = this.getUsers();
+    if (userId === 'user_admin') return false; // Prevent deleting master admin
+    users = users.filter(u => u.id !== userId);
+    writeStorage(STORAGE_KEYS.USERS, users);
+    return true;
+  },
+
+  // Invoices (Isolated per User)
+  getAllInvoicesRaw(): Invoice[] {
+    return readStorage<Invoice[]>(STORAGE_KEYS.INVOICES, []);
+  },
+
+  getInvoices(userId?: string): Invoice[] {
+    const all = this.getAllInvoicesRaw();
+    if (!userId) {
+      const current = this.getCurrentUser();
+      if (!current) return [];
+      userId = current.id;
+    }
+
+    const userInvoices = all.filter(i => i.userId === userId);
     const today = new Date().toISOString().split('T')[0];
-    return invoices.map(inv => {
+
+    return userInvoices.map(inv => {
       if ((inv.status === 'sent' || inv.status === 'partially_paid') && inv.dueDate < today && inv.balanceDue > 0) {
         return { ...inv, status: 'overdue' as const };
       }
@@ -987,31 +279,36 @@ export const StorageService = {
   },
 
   getInvoiceById(id: string): Invoice | undefined {
-    return this.getInvoices().find(i => i.id === id);
+    return this.getAllInvoicesRaw().find(i => i.id === id);
   },
 
-  saveInvoice(invoice: Invoice): Invoice {
-    const invoices = this.getInvoices();
-    const index = invoices.findIndex(i => i.id === invoice.id);
-    
+  saveInvoice(invoice: Invoice, userId?: string): Invoice {
+    const current = this.getCurrentUser();
+    const effectiveUserId = userId || invoice.userId || current?.id || 'user_guest';
+
+    const allInvoices = this.getAllInvoicesRaw();
+    const index = allInvoices.findIndex(i => i.id === invoice.id);
     const now = new Date().toISOString();
-    let updatedInvoice: Invoice = {
+
+    const updatedInvoice: Invoice = {
       ...invoice,
+      userId: effectiveUserId,
       updatedAt: now,
     };
 
     if (index >= 0) {
-      invoices[index] = updatedInvoice;
+      allInvoices[index] = updatedInvoice;
     } else {
       updatedInvoice.createdAt = now;
-      invoices.unshift(updatedInvoice);
+      allInvoices.unshift(updatedInvoice);
 
-      // Increment next sequence in settings
-      const settings = this.getSettings();
+      // Increment sequence for this user's settings
+      const settings = this.getUserSettings(effectiveUserId);
       settings.invoiceDefaults.nextNumber += 1;
-      this.saveSettings(settings);
+      this.saveUserSettings(settings, effectiveUserId);
 
       this.addActivity({
+        userId: effectiveUserId,
         type: 'invoice_created',
         title: 'Invoice Created',
         description: `Invoice ${updatedInvoice.number} was created for ${updatedInvoice.client?.name || 'Client'}.`,
@@ -1020,25 +317,28 @@ export const StorageService = {
       });
     }
 
-    writeStorage(STORAGE_KEYS.INVOICES, invoices);
+    writeStorage(STORAGE_KEYS.INVOICES, allInvoices);
     return updatedInvoice;
   },
 
   deleteInvoice(id: string): boolean {
-    const invoices = this.getInvoices();
-    const filtered = invoices.filter(i => i.id !== id);
-    if (filtered.length !== invoices.length) {
+    const allInvoices = this.getAllInvoicesRaw();
+    const filtered = allInvoices.filter(i => i.id !== id);
+    if (filtered.length !== allInvoices.length) {
       writeStorage(STORAGE_KEYS.INVOICES, filtered);
       return true;
     }
     return false;
   },
 
-  duplicateInvoice(id: string): Invoice | null {
+  duplicateInvoice(id: string, userId?: string): Invoice | null {
     const existing = this.getInvoiceById(id);
     if (!existing) return null;
 
-    const settings = this.getSettings();
+    const current = this.getCurrentUser();
+    const effectiveUserId = userId || current?.id || existing.userId;
+    const settings = this.getUserSettings(effectiveUserId);
+
     const newNumber = generateInvoiceNumber(
       settings.invoiceDefaults.prefix, 
       settings.invoiceDefaults.nextNumber
@@ -1047,6 +347,7 @@ export const StorageService = {
     const duplicated: Invoice = {
       ...existing,
       id: 'inv_' + Date.now(),
+      userId: effectiveUserId,
       number: newNumber,
       title: existing.title || 'Tax Invoice',
       issueDate: getTodayDateString(),
@@ -1060,36 +361,46 @@ export const StorageService = {
       updatedAt: new Date().toISOString(),
     };
 
-    return this.saveInvoice(duplicated);
+    return this.saveInvoice(duplicated, effectiveUserId);
   },
 
-  // Quotes
-  getQuotes(): Quote[] {
-    this.init();
+  // Quotes (Isolated per User)
+  getAllQuotesRaw(): Quote[] {
     return readStorage<Quote[]>(STORAGE_KEYS.QUOTES, []);
   },
 
-  getQuoteById(id: string): Quote | undefined {
-    return this.getQuotes().find(q => q.id === id);
+  getQuotes(userId?: string): Quote[] {
+    const all = this.getAllQuotesRaw();
+    if (!userId) {
+      const current = this.getCurrentUser();
+      if (!current) return [];
+      userId = current.id;
+    }
+    return all.filter(q => q.userId === userId);
   },
 
-  saveQuote(quote: Quote): Quote {
-    const quotes = this.getQuotes();
-    const index = quotes.findIndex(q => q.id === quote.id);
+  saveQuote(quote: Quote, userId?: string): Quote {
+    const current = this.getCurrentUser();
+    const effectiveUserId = userId || quote.userId || current?.id || 'user_guest';
+
+    const all = this.getAllQuotesRaw();
+    const index = all.findIndex(q => q.id === quote.id);
     const now = new Date().toISOString();
 
-    let updatedQuote: Quote = {
+    const updatedQuote: Quote = {
       ...quote,
+      userId: effectiveUserId,
       updatedAt: now,
     };
 
     if (index >= 0) {
-      quotes[index] = updatedQuote;
+      all[index] = updatedQuote;
     } else {
       updatedQuote.createdAt = now;
-      quotes.unshift(updatedQuote);
+      all.unshift(updatedQuote);
 
       this.addActivity({
+        userId: effectiveUserId,
         type: 'quote_created',
         title: 'Quote Created',
         description: `Estimate ${updatedQuote.number} was created for ${updatedQuote.client?.name || 'Client'}.`,
@@ -1098,31 +409,34 @@ export const StorageService = {
       });
     }
 
-    writeStorage(STORAGE_KEYS.QUOTES, quotes);
+    writeStorage(STORAGE_KEYS.QUOTES, all);
     return updatedQuote;
   },
 
   deleteQuote(id: string): boolean {
-    const quotes = this.getQuotes();
-    const filtered = quotes.filter(q => q.id !== id);
-    if (filtered.length !== quotes.length) {
+    const all = this.getAllQuotesRaw();
+    const filtered = all.filter(q => q.id !== id);
+    if (filtered.length !== all.length) {
       writeStorage(STORAGE_KEYS.QUOTES, filtered);
       return true;
     }
     return false;
   },
 
-  convertQuoteToInvoice(quoteId: string): Invoice | null {
-    const quote = this.getQuoteById(quoteId);
+  convertQuoteToInvoice(quoteId: string, userId?: string): Invoice | null {
+    const allQuotes = this.getAllQuotesRaw();
+    const quote = allQuotes.find(q => q.id === quoteId);
     if (!quote) return null;
 
-    // Prevent duplicate conversion if already converted
     if (quote.convertedInvoiceId) {
-      const existingInv = this.getInvoiceById(quote.convertedInvoiceId);
-      if (existingInv) return existingInv;
+      const existing = this.getInvoiceById(quote.convertedInvoiceId);
+      if (existing) return existing;
     }
 
-    const settings = this.getSettings();
+    const current = this.getCurrentUser();
+    const effectiveUserId = userId || quote.userId || current?.id;
+    const settings = this.getUserSettings(effectiveUserId);
+
     const newNumber = generateInvoiceNumber(
       settings.invoiceDefaults.prefix, 
       settings.invoiceDefaults.nextNumber
@@ -1142,6 +456,7 @@ export const StorageService = {
 
     const newInvoice: Invoice = {
       id: 'inv_' + Date.now(),
+      userId: effectiveUserId,
       number: newNumber,
       prefix: settings.invoiceDefaults.prefix,
       title: 'Tax Invoice',
@@ -1166,7 +481,7 @@ export const StorageService = {
       bankDetails: quote.business.bankDetails,
       signatureType: 'text',
       authorizedSignatoryName: quote.business.signatureText,
-      footerText: 'Thank you for approving our estimate.',
+      footerText: 'Generated electronically with JS Invoice.',
       status: 'draft',
       templateConfig: quote.templateConfig,
       visibility: quote.visibility,
@@ -1174,14 +489,14 @@ export const StorageService = {
       updatedAt: new Date().toISOString(),
     };
 
-    const savedInvoice = this.saveInvoice(newInvoice);
+    const savedInvoice = this.saveInvoice(newInvoice, effectiveUserId);
 
-    // Update quote status to accepted & mark convertedInvoiceId
     quote.status = 'converted';
     quote.convertedInvoiceId = savedInvoice.id;
-    this.saveQuote(quote);
+    this.saveQuote(quote, effectiveUserId);
 
     this.addActivity({
+      userId: effectiveUserId,
       type: 'quote_converted',
       title: 'Quote Converted',
       description: `Quote ${quote.number} was converted into Invoice ${savedInvoice.number}.`,
@@ -1192,29 +507,42 @@ export const StorageService = {
     return savedInvoice;
   },
 
-  // Clients
-  getClients(): Client[] {
-    this.init();
+  // Clients (Isolated per User)
+  getAllClientsRaw(): Client[] {
     return readStorage<Client[]>(STORAGE_KEYS.CLIENTS, []);
   },
 
-  getClientById(id: string): Client | undefined {
-    return this.getClients().find(c => c.id === id);
+  getClients(userId?: string): Client[] {
+    const all = this.getAllClientsRaw();
+    if (!userId) {
+      const current = this.getCurrentUser();
+      if (!current) return [];
+      userId = current.id;
+    }
+    return all.filter(c => c.userId === userId && !c.archived);
   },
 
-  saveClient(client: Client): Client {
-    const clients = this.getClients();
-    const index = clients.findIndex(c => c.id === client.id);
+  saveClient(client: Client, userId?: string): Client {
+    const current = this.getCurrentUser();
+    const effectiveUserId = userId || client.userId || current?.id || 'user_guest';
 
-    let updatedClient: Client = { ...client };
+    const all = this.getAllClientsRaw();
+    const index = all.findIndex(c => c.id === client.id);
+
+    const updatedClient: Client = {
+      ...client,
+      userId: effectiveUserId,
+    };
+
     if (index >= 0) {
-      clients[index] = updatedClient;
+      all[index] = updatedClient;
     } else {
       updatedClient.id = client.id || 'cli_' + Date.now();
       updatedClient.createdAt = new Date().toISOString();
-      clients.unshift(updatedClient);
+      all.unshift(updatedClient);
 
       this.addActivity({
+        userId: effectiveUserId,
         type: 'client_added',
         title: 'New Client Added',
         description: `Added client "${updatedClient.name}" (${updatedClient.companyName || updatedClient.email}).`,
@@ -1223,103 +551,129 @@ export const StorageService = {
       });
     }
 
-    writeStorage(STORAGE_KEYS.CLIENTS, clients);
+    writeStorage(STORAGE_KEYS.CLIENTS, all);
     return updatedClient;
   },
 
   deleteClient(id: string): { success: boolean; message?: string } {
-    const invoices = this.getInvoices();
+    const invoices = this.getAllInvoicesRaw();
     const hasInvoices = invoices.some(i => i.client?.id === id);
 
-    // Protected deletion rule: If client has historical invoices, archive instead of silent cascade delete
-    const clients = this.getClients();
+    const clients = this.getAllClientsRaw();
     if (hasInvoices) {
       const index = clients.findIndex(c => c.id === id);
       if (index >= 0) {
         clients[index].archived = true;
         writeStorage(STORAGE_KEYS.CLIENTS, clients);
-        return { success: true, message: 'Client has existing invoices. Client was safely archived.' };
+        return { success: true, message: 'Client has existing invoices. Safely archived client.' };
       }
     }
 
     const filtered = clients.filter(c => c.id !== id);
     writeStorage(STORAGE_KEYS.CLIENTS, filtered);
-    return { success: true, message: 'Client removed successfully.' };
+    return { success: true, message: 'Client deleted successfully.' };
   },
 
-  getClientMetrics(clientId: string) {
-    const invoices = this.getInvoices().filter(i => i.client?.id === clientId && i.status !== 'cancelled');
-    const totalInvoiced = invoices.reduce((acc, i) => acc + i.grandTotal, 0);
-    const totalPaid = invoices.reduce((acc, i) => acc + i.amountPaid, 0);
-    const balanceDue = invoices.reduce((acc, i) => acc + i.balanceDue, 0);
+  getClientMetrics(clientId: string, userId?: string) {
+    const userInvoices = this.getInvoices(userId).filter(i => i.client?.id === clientId && i.status !== 'cancelled');
+    const totalInvoiced = userInvoices.reduce((acc, i) => acc + i.grandTotal, 0);
+    const totalPaid = userInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
+    const balanceDue = userInvoices.reduce((acc, i) => acc + i.balanceDue, 0);
     return {
       totalInvoiced: Math.round(totalInvoiced * 100) / 100,
       totalPaid: Math.round(totalPaid * 100) / 100,
       balanceDue: Math.round(balanceDue * 100) / 100,
-      invoiceCount: invoices.length,
-      invoices,
+      invoiceCount: userInvoices.length,
+      invoices: userInvoices,
     };
   },
 
-  // Products
-  getProducts(): Product[] {
-    this.init();
+  // Products (Isolated per User)
+  getAllProductsRaw(): Product[] {
     return readStorage<Product[]>(STORAGE_KEYS.PRODUCTS, []);
   },
 
-  saveProduct(product: Product): Product {
-    const products = this.getProducts();
-    const index = products.findIndex(p => p.id === product.id);
+  getProducts(userId?: string): Product[] {
+    const all = this.getAllProductsRaw();
+    if (!userId) {
+      const current = this.getCurrentUser();
+      if (!current) return [];
+      userId = current.id;
+    }
+    return all.filter(p => p.userId === userId && p.status !== 'archived');
+  },
 
-    let updatedProduct: Product = { ...product };
+  saveProduct(product: Product, userId?: string): Product {
+    const current = this.getCurrentUser();
+    const effectiveUserId = userId || product.userId || current?.id || 'user_guest';
+
+    const all = this.getAllProductsRaw();
+    const index = all.findIndex(p => p.id === product.id);
+
+    const updatedProduct: Product = {
+      ...product,
+      userId: effectiveUserId,
+    };
+
     if (index >= 0) {
-      products[index] = updatedProduct;
+      all[index] = updatedProduct;
     } else {
       updatedProduct.id = product.id || 'prod_' + Date.now();
       updatedProduct.createdAt = new Date().toISOString();
-      products.unshift(updatedProduct);
+      all.unshift(updatedProduct);
     }
 
-    writeStorage(STORAGE_KEYS.PRODUCTS, products);
+    writeStorage(STORAGE_KEYS.PRODUCTS, all);
     return updatedProduct;
   },
 
   deleteProduct(id: string): boolean {
-    const products = this.getProducts();
-    const filtered = products.filter(p => p.id !== id);
-    if (filtered.length !== products.length) {
+    const all = this.getAllProductsRaw();
+    const filtered = all.filter(p => p.id !== id);
+    if (filtered.length !== all.length) {
       writeStorage(STORAGE_KEYS.PRODUCTS, filtered);
       return true;
     }
     return false;
   },
 
-  // Payments
-  getPayments(): PaymentRecord[] {
-    this.init();
+  // Payments (Isolated per User)
+  getAllPaymentsRaw(): PaymentRecord[] {
     return readStorage<PaymentRecord[]>(STORAGE_KEYS.PAYMENTS, []);
   },
 
-  recordPayment(record: Omit<PaymentRecord, 'id' | 'createdAt'>): { payment: PaymentRecord; invoice: Invoice } {
+  getPayments(userId?: string): PaymentRecord[] {
+    const all = this.getAllPaymentsRaw();
+    if (!userId) {
+      const current = this.getCurrentUser();
+      if (!current) return [];
+      userId = current.id;
+    }
+    return all.filter(p => p.userId === userId);
+  },
+
+  recordPayment(record: Omit<PaymentRecord, 'id' | 'createdAt'>, userId?: string): { payment: PaymentRecord; invoice: Invoice } {
     const invoice = this.getInvoiceById(record.invoiceId);
     if (!invoice) throw new Error('Invoice not found');
 
     const paymentAmount = Math.round(record.amount * 100) / 100;
     if (paymentAmount <= 0) throw new Error('Payment amount must be greater than zero');
 
-    // Create payment record
+    const current = this.getCurrentUser();
+    const effectiveUserId = userId || invoice.userId || current?.id;
+
     const payment: PaymentRecord = {
       ...record,
       id: 'pay_' + Date.now(),
+      userId: effectiveUserId,
       amount: paymentAmount,
       createdAt: new Date().toISOString(),
     };
 
-    const payments = this.getPayments();
+    const payments = this.getAllPaymentsRaw();
     payments.unshift(payment);
     writeStorage(STORAGE_KEYS.PAYMENTS, payments);
 
-    // Update invoice paid amount and balance
     const newPaidTotal = Math.min(invoice.grandTotal, Math.round((invoice.amountPaid + paymentAmount) * 100) / 100);
     const newBalance = Math.max(0, Math.round((invoice.grandTotal - newPaidTotal) * 100) / 100);
 
@@ -1333,9 +687,10 @@ export const StorageService = {
       invoice.status = 'partially_paid';
     }
 
-    const updatedInvoice = this.saveInvoice(invoice);
+    const updatedInvoice = this.saveInvoice(invoice, effectiveUserId);
 
     this.addActivity({
+      userId: effectiveUserId,
       type: 'payment_received',
       title: 'Payment Recorded',
       description: `Recorded payment of ${payment.amount} (${payment.method}) for Invoice ${invoice.number}.`,
@@ -1347,59 +702,129 @@ export const StorageService = {
   },
 
   // Settings
-  getSettings(): AppSettings {
-    this.init();
-    return readStorage<AppSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+  getUserSettings(userId?: string): AppSettings {
+    const current = this.getCurrentUser();
+    const id = userId || current?.id || 'user_guest';
+    const key = STORAGE_KEYS.SETTINGS + '_' + id;
+    const existing = readStorage<AppSettings | null>(key, null);
+    if (existing) return existing;
+    return createDefaultSettings(current || undefined);
   },
 
-  saveSettings(settings: AppSettings): AppSettings {
-    writeStorage(STORAGE_KEYS.SETTINGS, settings);
+  saveUserSettings(settings: AppSettings, userId?: string): AppSettings {
+    const current = this.getCurrentUser();
+    const id = userId || current?.id || 'user_guest';
+    const key = STORAGE_KEYS.SETTINGS + '_' + id;
+    writeStorage(key, settings);
     return settings;
   },
 
   // Activities
-  getActivities(): ActivityItem[] {
-    this.init();
+  getAllActivitiesRaw(): ActivityItem[] {
     return readStorage<ActivityItem[]>(STORAGE_KEYS.ACTIVITIES, []);
   },
 
+  getActivities(userId?: string): ActivityItem[] {
+    const all = this.getAllActivitiesRaw();
+    if (!userId) {
+      const current = this.getCurrentUser();
+      if (!current) return [];
+      userId = current.id;
+    }
+    return all.filter(a => a.userId === userId);
+  },
+
   addActivity(item: Omit<ActivityItem, 'id' | 'timestamp'>): void {
-    const activities = this.getActivities();
+    const all = this.getAllActivitiesRaw();
     const newActivity: ActivityItem = {
       ...item,
       id: 'act_' + Date.now(),
       timestamp: new Date().toISOString(),
     };
-    activities.unshift(newActivity);
-    writeStorage(STORAGE_KEYS.ACTIVITIES, activities.slice(0, 50)); // Keep latest 50
+    all.unshift(newActivity);
+    writeStorage(STORAGE_KEYS.ACTIVITIES, all.slice(0, 100));
   },
 
-  // Global backup & restore
-  exportDataToJson(): string {
+  // Admin Analytics & Platform Statistics
+  getPlatformStats() {
+    const users = this.getUsers();
+    const allInvoices = this.getAllInvoicesRaw();
+    const allPayments = this.getAllPaymentsRaw();
+
+    const totalUsers = users.length;
+    const activeUsers = users.filter(u => u.status === 'active').length;
+    const totalInvoicesCreated = allInvoices.length;
+    const totalPlatformGmv = allInvoices.reduce((acc, i) => acc + (i.status !== 'cancelled' ? i.grandTotal : 0), 0);
+    const totalCollectionsSettled = allPayments.reduce((acc, p) => acc + p.amount, 0);
+
+    // User breakdown list with their individual invoice counts and GMV
+    const userStats = users.map(user => {
+      const userInvoices = allInvoices.filter(i => i.userId === user.id);
+      const invoicedSum = userInvoices.reduce((acc, i) => acc + (i.status !== 'cancelled' ? i.grandTotal : 0), 0);
+      const paidSum = userInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
+
+      return {
+        ...user,
+        invoicesCount: userInvoices.length,
+        totalInvoiced: Math.round(invoicedSum * 100) / 100,
+        totalPaid: Math.round(paidSum * 100) / 100,
+      };
+    });
+
+    return {
+      totalUsers,
+      activeUsers,
+      totalInvoicesCreated,
+      totalPlatformGmv: Math.round(totalPlatformGmv * 100) / 100,
+      totalCollectionsSettled: Math.round(totalCollectionsSettled * 100) / 100,
+      userStats,
+    };
+  },
+
+  // Export JSON backup for user
+  exportDataToJson(userId?: string): string {
+    const current = this.getCurrentUser();
+    const id = userId || current?.id;
     const backup = {
-      version: '1.0',
+      version: '2.0',
+      brand: 'JS Invoice',
       exportedAt: new Date().toISOString(),
-      invoices: this.getInvoices(),
-      quotes: this.getQuotes(),
-      clients: this.getClients(),
-      products: this.getProducts(),
-      payments: this.getPayments(),
-      settings: this.getSettings(),
-      activities: this.getActivities(),
+      user: current,
+      invoices: this.getInvoices(id),
+      quotes: this.getQuotes(id),
+      clients: this.getClients(id),
+      products: this.getProducts(id),
+      payments: this.getPayments(id),
+      settings: this.getUserSettings(id),
+      activities: this.getActivities(id),
     };
     return JSON.stringify(backup, null, 2);
   },
 
-  importDataFromJson(jsonStr: string): boolean {
+  importDataFromJson(jsonStr: string, userId?: string): boolean {
     try {
       const data = JSON.parse(jsonStr);
-      if (data.invoices) writeStorage(STORAGE_KEYS.INVOICES, data.invoices);
-      if (data.quotes) writeStorage(STORAGE_KEYS.QUOTES, data.quotes);
-      if (data.clients) writeStorage(STORAGE_KEYS.CLIENTS, data.clients);
-      if (data.products) writeStorage(STORAGE_KEYS.PRODUCTS, data.products);
-      if (data.payments) writeStorage(STORAGE_KEYS.PAYMENTS, data.payments);
-      if (data.settings) writeStorage(STORAGE_KEYS.SETTINGS, data.settings);
-      if (data.activities) writeStorage(STORAGE_KEYS.ACTIVITIES, data.activities);
+      const current = this.getCurrentUser();
+      const id = userId || current?.id;
+
+      if (data.invoices && Array.isArray(data.invoices)) {
+        const existing = this.getAllInvoicesRaw().filter(i => i.userId !== id);
+        const imported = data.invoices.map((i: any) => ({ ...i, userId: id }));
+        writeStorage(STORAGE_KEYS.INVOICES, [...imported, ...existing]);
+      }
+      if (data.clients && Array.isArray(data.clients)) {
+        const existing = this.getAllClientsRaw().filter(c => c.userId !== id);
+        const imported = data.clients.map((c: any) => ({ ...c, userId: id }));
+        writeStorage(STORAGE_KEYS.CLIENTS, [...imported, ...existing]);
+      }
+      if (data.products && Array.isArray(data.products)) {
+        const existing = this.getAllProductsRaw().filter(p => p.userId !== id);
+        const imported = data.products.map((p: any) => ({ ...p, userId: id }));
+        writeStorage(STORAGE_KEYS.PRODUCTS, [...imported, ...existing]);
+      }
+      if (data.settings) {
+        this.saveUserSettings(data.settings, id);
+      }
       return true;
     } catch (err) {
       console.error('Import failed:', err);
@@ -1407,13 +832,17 @@ export const StorageService = {
     }
   },
 
-  resetToDemoData(): void {
-    writeStorage(STORAGE_KEYS.CLIENTS, SEED_CLIENTS);
-    writeStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
-    writeStorage(STORAGE_KEYS.INVOICES, buildSeedInvoices());
-    writeStorage(STORAGE_KEYS.PAYMENTS, SEED_PAYMENTS);
-    writeStorage(STORAGE_KEYS.QUOTES, buildSeedQuotes());
-    writeStorage(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
-    writeStorage(STORAGE_KEYS.ACTIVITIES, SEED_ACTIVITIES);
+  // Reset current user's data to clean slate
+  clearCurrentUserData(userId?: string): void {
+    const current = this.getCurrentUser();
+    const id = userId || current?.id;
+    if (!id) return;
+
+    writeStorage(STORAGE_KEYS.INVOICES, this.getAllInvoicesRaw().filter(i => i.userId !== id));
+    writeStorage(STORAGE_KEYS.QUOTES, this.getAllQuotesRaw().filter(q => q.userId !== id));
+    writeStorage(STORAGE_KEYS.CLIENTS, this.getAllClientsRaw().filter(c => c.userId !== id));
+    writeStorage(STORAGE_KEYS.PRODUCTS, this.getAllProductsRaw().filter(p => p.userId !== id));
+    writeStorage(STORAGE_KEYS.PAYMENTS, this.getAllPaymentsRaw().filter(p => p.userId !== id));
+    writeStorage(STORAGE_KEYS.ACTIVITIES, this.getAllActivitiesRaw().filter(a => a.userId !== id));
   },
 };

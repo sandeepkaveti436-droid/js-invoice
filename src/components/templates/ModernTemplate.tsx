@@ -40,7 +40,7 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
                 className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-lg shadow-sm"
                 style={{ backgroundColor: accentColor }}
               >
-                {invoice.business?.name ? invoice.business.name.substring(0, 2).toUpperCase() : 'IF'}
+                {invoice.business?.name ? invoice.business.name.substring(0, 2).toUpperCase() : 'JS'}
               </div>
               <span className="font-bold text-xl text-slate-900 tracking-tight">
                 {invoice.business?.name || 'Company Name'}

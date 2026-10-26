@@ -78,7 +78,7 @@ export const TemplatesPage: React.FC = () => {
     bankDetails: settings.business.bankDetails,
     signatureType: 'text',
     authorizedSignatoryName: 'Alex Rivera',
-    footerText: 'Generated electronically via InvoiceFlow SaaS.',
+    footerText: 'Generated electronically via JS Invoice.',
     subtotal: 5000,
     lineDiscountTotal: 250,
     invoiceDiscountAmount: 0,

@@ -86,12 +86,12 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
 
     const defaultClient = clients[0] || {
       id: 'cli_temp',
-      name: 'Acme Corporation',
-      email: 'billing@acme.com',
-      addressLine1: '100 Market St',
-      city: 'San Francisco',
-      state: 'CA',
-      postalCode: '94105',
+      name: '',
+      email: '',
+      addressLine1: '',
+      city: '',
+      state: '',
+      postalCode: '',
       country: 'United States',
       createdAt: new Date().toISOString(),
     };
@@ -159,7 +159,7 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       bankDetails: JSON.parse(JSON.stringify(settings.business.bankDetails)),
       signatureType: 'text',
       authorizedSignatoryName: settings.business.signatureText || 'Alex Rivera',
-      footerText: 'Generated securely with InvoiceFlow SaaS.',
+      footerText: 'Generated securely with JS Invoice.',
       status: 'draft',
       templateConfig: {
         templateId: settings.invoiceDefaults.defaultTemplate || 'modern',

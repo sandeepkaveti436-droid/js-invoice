@@ -20,7 +20,7 @@ import { CURRENCIES } from '../utils/currency';
 import { StorageService } from '../services/storage';
 
 export const SettingsPage: React.FC = () => {
-  const { settings, updateSettings, resetDemoData, showToast } = useApp();
+  const { settings, updateSettings, clearMyData, showToast } = useApp();
 
   const [activeTab, setActiveTab] = useState<'business' | 'defaults' | 'appearance' | 'gateway' | 'data'>('business');
   const [formData, setFormData] = useState<AppSettings>(JSON.parse(JSON.stringify(settings)));
@@ -37,7 +37,7 @@ export const SettingsPage: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `invoiceflow_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `js_invoice_backup_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
     showToast('Database exported as JSON backup file', 'success');
@@ -690,25 +690,25 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Reset to Demo */}
+            {/* Clear Account Data */}
             <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
-                <h4 className="font-bold text-rose-700 text-xs">Reset All Records to Demo Data</h4>
+                <h4 className="font-bold text-rose-700 text-xs">Clear My Account Records</h4>
                 <p className="text-[11px] text-slate-400">
-                  Resets invoices, quotes, clients, and payments to the initial seed demo state.
+                  Delete all invoices, quotes, clients, and payments created in this account.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm('Are you sure you want to reset all data back to the demo showcase?')) {
-                    resetDemoData();
+                  if (confirm('Are you sure you want to clear all invoices, clients, and records in your account? This cannot be undone.')) {
+                    clearMyData();
                   }
                 }}
                 className="px-3.5 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 font-semibold text-xs flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset to Demo Data</span>
+                <span>Clear Account Data</span>
               </button>
             </div>
           </div>

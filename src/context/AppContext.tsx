@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { 
+  User,
   Invoice, 
   Quote, 
   Client, 
@@ -9,7 +10,7 @@ import {
   ActivityItem, 
   NavigationPage 
 } from '../types';
-import { StorageService, DEFAULT_SETTINGS } from '../services/storage';
+import { StorageService, createDefaultSettings } from '../services/storage';
 
 export interface ToastMessage {
   id: string;
@@ -18,6 +19,17 @@ export interface ToastMessage {
 }
 
 interface AppContextType {
+  currentUser: User | null;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  isAuthModalOpen: boolean;
+  setIsAuthModalOpen: (open: boolean) => void;
+  login: (email: string, pass?: string) => Promise<User>;
+  signup: (name: string, email: string, pass?: string, companyName?: string) => Promise<User>;
+  loginWithGoogle: () => Promise<User>;
+  logout: () => void;
+  switchUserAccount: (userId: string) => void;
+
   currentView: NavigationPage;
   setCurrentView: (view: NavigationPage) => void;
   activeInvoiceId: string | null;
@@ -42,7 +54,7 @@ interface AppContextType {
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
   
-  // Quick Actions
+  // Navigation Shortcuts
   openCreateInvoice: (prefillClientId?: string) => void;
   openEditInvoice: (invoiceId: string) => void;
   openViewInvoice: (invoiceId: string) => void;
@@ -50,7 +62,7 @@ interface AppContextType {
   openEditQuote: (quoteId: string) => void;
   openClientDetail: (clientId: string) => void;
   
-  // Data Mutators
+  // Operations (User-isolated)
   refreshData: () => void;
   saveInvoice: (invoice: Invoice) => Invoice;
   deleteInvoice: (id: string) => boolean;
@@ -64,12 +76,19 @@ interface AppContextType {
   deleteProduct: (id: string) => boolean;
   recordPayment: (payment: Omit<PaymentRecord, 'id' | 'createdAt'>) => { payment: PaymentRecord; invoice: Invoice };
   updateSettings: (settings: AppSettings) => void;
-  resetDemoData: () => void;
+  clearMyData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  StorageService.init();
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    return StorageService.getCurrentUser();
+  });
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<NavigationPage>('overview');
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [activeQuoteId, setActiveQuoteId] = useState<string | null>(null);
@@ -81,24 +100,86 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<AppSettings>(() => createDefaultSettings());
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  // Refresh data whenever current user changes
   const refreshData = () => {
-    StorageService.init();
-    setInvoices(StorageService.getInvoices());
-    setQuotes(StorageService.getQuotes());
-    setClients(StorageService.getClients());
-    setProducts(StorageService.getProducts());
-    setPayments(StorageService.getPayments());
-    setSettings(StorageService.getSettings());
-    setActivities(StorageService.getActivities());
+    const user = StorageService.getCurrentUser();
+    if (!user) {
+      setInvoices([]);
+      setQuotes([]);
+      setClients([]);
+      setProducts([]);
+      setPayments([]);
+      setSettings(createDefaultSettings());
+      setActivities([]);
+      return;
+    }
+
+    setInvoices(StorageService.getInvoices(user.id));
+    setQuotes(StorageService.getQuotes(user.id));
+    setClients(StorageService.getClients(user.id));
+    setProducts(StorageService.getProducts(user.id));
+    setPayments(StorageService.getPayments(user.id));
+    setSettings(StorageService.getUserSettings(user.id));
+    setActivities(StorageService.getActivities(user.id));
   };
 
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [currentUser]);
+
+  // Auth Functions
+  const login = async (email: string, pass?: string): Promise<User> => {
+    const user = StorageService.loginUser(email);
+    if (!user) {
+      throw new Error('User not found. Please click "Create Account" to sign up.');
+    }
+    setCurrentUser(user);
+    return user;
+  };
+
+  const signup = async (name: string, email: string, pass?: string, companyName?: string): Promise<User> => {
+    const user = StorageService.registerUser({
+      name,
+      email,
+      companyName,
+      provider: 'email',
+    });
+    setCurrentUser(user);
+    return user;
+  };
+
+  const loginWithGoogle = async (): Promise<User> => {
+    // Generate or login via Google
+    const user = StorageService.registerUser({
+      name: 'Google User',
+      email: 'user.google@gmail.com',
+      companyName: 'Google Workspace Studio',
+      provider: 'google',
+    });
+    setCurrentUser(user);
+    return user;
+  };
+
+  const logout = () => {
+    StorageService.setCurrentUser(null);
+    setCurrentUser(null);
+    setCurrentView('overview');
+    showToast('Signed out successfully', 'info');
+  };
+
+  const switchUserAccount = (userId: string) => {
+    const users = StorageService.getUsers();
+    const target = users.find(u => u.id === userId);
+    if (target) {
+      StorageService.setCurrentUser(target);
+      setCurrentUser(target);
+      setCurrentView('overview');
+    }
+  };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = 'toast_' + Date.now() + Math.random().toString(36).substring(2, 6);
@@ -114,6 +195,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Navigators
   const openCreateInvoice = (prefillClientId?: string) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setActiveInvoiceId(null);
     if (prefillClientId) {
       setActiveClientId(prefillClientId);
@@ -132,6 +217,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const openCreateQuote = (prefillClientId?: string) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setActiveQuoteId(null);
     if (prefillClientId) {
       setActiveClientId(prefillClientId);
@@ -149,11 +238,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentView('client_detail');
   };
 
-  // Data Operations
+  // Data Operations (Scoped to currentUser)
   const handleSaveInvoice = (invoice: Invoice): Invoice => {
-    const saved = StorageService.saveInvoice(invoice);
+    const saved = StorageService.saveInvoice(invoice, currentUser?.id);
     refreshData();
-    showToast(`Invoice ${saved.number} saved successfully!`, 'success');
+    showToast(`Invoice ${saved.number} saved!`, 'success');
     return saved;
   };
 
@@ -171,7 +260,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleDuplicateInvoice = (id: string): Invoice | null => {
-    const dup = StorageService.duplicateInvoice(id);
+    const dup = StorageService.duplicateInvoice(id, currentUser?.id);
     if (dup) {
       refreshData();
       showToast(`Invoice duplicated as ${dup.number}`, 'success');
@@ -182,9 +271,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleSaveQuote = (quote: Quote): Quote => {
-    const saved = StorageService.saveQuote(quote);
+    const saved = StorageService.saveQuote(quote, currentUser?.id);
     refreshData();
-    showToast(`Quote ${saved.number} saved successfully!`, 'success');
+    showToast(`Quote ${saved.number} saved!`, 'success');
     return saved;
   };
 
@@ -202,7 +291,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleConvertQuote = (quoteId: string): Invoice | null => {
-    const inv = StorageService.convertQuoteToInvoice(quoteId);
+    const inv = StorageService.convertQuoteToInvoice(quoteId, currentUser?.id);
     if (inv) {
       refreshData();
       showToast(`Quote converted into Invoice ${inv.number}!`, 'success');
@@ -213,7 +302,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleSaveClient = (client: Client): Client => {
-    const saved = StorageService.saveClient(client);
+    const saved = StorageService.saveClient(client, currentUser?.id);
     refreshData();
     showToast(`Client "${saved.name}" saved!`, 'success');
     return saved;
@@ -231,7 +320,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleSaveProduct = (product: Product): Product => {
-    const saved = StorageService.saveProduct(product);
+    const saved = StorageService.saveProduct(product, currentUser?.id);
     refreshData();
     showToast(`Product "${saved.name}" saved!`, 'success');
     return saved;
@@ -247,28 +336,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleRecordPayment = (paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>) => {
-    const result = StorageService.recordPayment(paymentData);
+    const result = StorageService.recordPayment(paymentData, currentUser?.id);
     refreshData();
     showToast(`Payment of ${result.payment.amount} recorded for Invoice ${result.invoice.number}!`, 'success');
     return result;
   };
 
   const handleUpdateSettings = (newSettings: AppSettings) => {
-    StorageService.saveSettings(newSettings);
+    StorageService.saveUserSettings(newSettings, currentUser?.id);
     refreshData();
     showToast('Settings updated successfully', 'success');
   };
 
-  const handleResetDemoData = () => {
-    StorageService.resetToDemoData();
-    refreshData();
-    showToast('Application reset to initial demo state', 'info');
-    setCurrentView('overview');
+  const handleClearMyData = () => {
+    if (currentUser) {
+      StorageService.clearCurrentUserData(currentUser.id);
+      refreshData();
+      showToast('All your invoice data was cleared.', 'info');
+      setCurrentView('overview');
+    }
   };
 
   return (
     <AppContext.Provider
       value={{
+        currentUser,
+        isAuthenticated: Boolean(currentUser),
+        isAdmin: currentUser?.role === 'admin',
+        isAuthModalOpen,
+        setIsAuthModalOpen,
+        login,
+        signup,
+        loginWithGoogle,
+        logout,
+        switchUserAccount,
         currentView,
         setCurrentView,
         activeInvoiceId,
@@ -308,7 +409,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteProduct: handleDeleteProduct,
         recordPayment: handleRecordPayment,
         updateSettings: handleUpdateSettings,
-        resetDemoData: handleResetDemoData,
+        clearMyData: handleClearMyData,
       }}
     >
       {children}

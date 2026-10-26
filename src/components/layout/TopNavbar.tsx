@@ -11,11 +11,13 @@ import {
   Users, 
   Package, 
   ChevronDown, 
-  Sparkles,
-  ExternalLink,
-  RotateCcw,
-  CheckCircle2,
-  Clock
+  Sparkles, 
+  LogOut, 
+  LogIn, 
+  ShieldCheck, 
+  RotateCcw, 
+  Clock, 
+  CheckCircle2 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatDate } from '../../utils/formatters';
@@ -30,15 +32,19 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
     setCurrentView, 
     openCreateInvoice, 
     openCreateQuote, 
-    openEditInvoice,
-    openClientDetail,
+    openEditInvoice, 
+    openClientDetail, 
     invoices, 
     clients, 
     quotes, 
-    activities,
+    activities, 
     globalSearch, 
-    setGlobalSearch,
-    resetDemoData
+    setGlobalSearch, 
+    currentUser, 
+    isAdmin, 
+    logout, 
+    setIsAuthModalOpen,
+    clearMyData 
   } = useApp();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -52,7 +58,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
   const userRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
@@ -72,7 +77,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Compute Search Matches
   const filteredInvoices = globalSearch.trim()
     ? invoices.filter(
         i =>
@@ -101,7 +105,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
 
   const hasSearchMatches = filteredInvoices.length > 0 || filteredClients.length > 0 || filteredQuotes.length > 0;
 
-  // Breadcrumbs text helper
   const getPageInfo = () => {
     switch (currentView) {
       case 'overview':
@@ -115,11 +118,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
       case 'invoice_detail':
         return { title: 'Invoice Details', breadcrumb: 'Invoices / Detail' };
       case 'clients':
-        return { title: 'Client Management', breadcrumb: 'Clients' };
+        return { title: 'Client Directory', breadcrumb: 'Clients' };
       case 'client_detail':
-        return { title: 'Client Details & Statements', breadcrumb: 'Clients / Profile' };
+        return { title: 'Client Statement', breadcrumb: 'Clients / Profile' };
       case 'products':
-        return { title: 'Products & Services Catalog', breadcrumb: 'Products & Services' };
+        return { title: 'Products & Services', breadcrumb: 'Catalog' };
       case 'quotes':
         return { title: 'Estimates & Quotes', breadcrumb: 'Estimates' };
       case 'quote_create':
@@ -127,15 +130,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
       case 'quote_edit':
         return { title: 'Edit Estimate', breadcrumb: 'Estimates / Edit' };
       case 'payments':
-        return { title: 'Payment Records & Ledger', breadcrumb: 'Payments' };
+        return { title: 'Payments Ledger', breadcrumb: 'Payments' };
       case 'reports':
-        return { title: 'Financial Reports & Analytics', breadcrumb: 'Reports' };
+        return { title: 'Financial Reports', breadcrumb: 'Reports' };
       case 'templates':
         return { title: 'Invoice Template Gallery', breadcrumb: 'Templates' };
       case 'settings':
-        return { title: 'System & Business Settings', breadcrumb: 'Settings' };
+        return { title: 'Business Settings', breadcrumb: 'Settings' };
+      case 'admin':
+        return { title: 'Admin Master Control Panel', breadcrumb: 'Admin / Users & Platform' };
       default:
-        return { title: 'InvoiceFlow SaaS', breadcrumb: 'Home' };
+        return { title: 'JS Invoice', breadcrumb: 'Home' };
     }
   };
 
@@ -156,7 +161,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
 
           <div>
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <span className="hover:text-slate-600 cursor-pointer" onClick={() => setCurrentView('overview')}>App</span>
+              <span className="hover:text-slate-600 cursor-pointer" onClick={() => setCurrentView('overview')}>JS Invoice</span>
               <span>/</span>
               <span className="text-slate-600">{pageInfo.breadcrumb}</span>
             </div>
@@ -166,7 +171,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
           </div>
         </div>
 
-        {/* Center: Interactive Global Search */}
+        {/* Center: Global Search */}
         <div ref={searchRef} className="hidden md:flex flex-1 max-w-md relative mx-4">
           <div className="relative w-full">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -234,7 +239,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                           <div className="flex items-center gap-2">
                             <Users className="w-3.5 h-3.5 text-emerald-500" />
                             <span className="font-bold text-slate-900">{cli.name}</span>
-                            {cli.companyName && <span className="text-slate-400">({cli.companyName})</span>}
                           </div>
                           <span className="text-slate-400">{cli.email}</span>
                         </button>
@@ -260,7 +264,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                           <div className="flex items-center gap-2">
                             <FileCheck className="w-3.5 h-3.5 text-amber-500" />
                             <span className="font-mono font-bold text-slate-900">{q.number}</span>
-                            <span className="text-slate-500 truncate max-w-[150px]">{q.client?.name}</span>
                           </div>
                           <span className="text-slate-400 font-mono">${q.grandTotal}</span>
                         </button>
@@ -270,14 +273,14 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                 </>
               ) : (
                 <div className="p-4 text-center text-slate-400">
-                  No records match "{globalSearch}". Try another keyword.
+                  No records match "{globalSearch}".
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Right: Quick + New, Notifications, Help, User Avatar */}
+        {/* Right Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Quick Create Dropdown */}
           <div ref={quickRef} className="relative">
@@ -297,40 +300,37 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                     openCreateInvoice();
                     setShowQuickNew(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium"
                 >
                   <FileText className="w-4 h-4 text-indigo-500" />
                   <span>Invoice</span>
                 </button>
-
                 <button
                   onClick={() => {
                     openCreateQuote();
                     setShowQuickNew(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium"
                 >
                   <FileCheck className="w-4 h-4 text-amber-500" />
-                  <span>Estimate / Quote</span>
+                  <span>Estimate</span>
                 </button>
-
                 <button
                   onClick={() => {
                     setCurrentView('clients');
                     setShowQuickNew(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium"
                 >
                   <Users className="w-4 h-4 text-emerald-500" />
                   <span>Client</span>
                 </button>
-
                 <button
                   onClick={() => {
                     setCurrentView('products');
                     setShowQuickNew(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium"
                 >
                   <Package className="w-4 h-4 text-blue-500" />
                   <span>Product / Service</span>
@@ -339,7 +339,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
             )}
           </div>
 
-          {/* Activity Notifications */}
+          {/* Activity Bell */}
           <div ref={notifRef} className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -357,45 +357,39 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                 <div className="p-3 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-slate-500" />
-                    <span className="font-bold text-slate-900">Recent Activity</span>
+                    <span className="font-bold text-slate-900">Your Activity</span>
                   </div>
                   <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                    {activities.length} events
+                    {activities.length} items
                   </span>
                 </div>
 
                 <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
-                  {activities.slice(0, 8).map(act => (
-                    <div key={act.id} className="p-3 hover:bg-slate-50 transition-colors">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-semibold text-slate-800 text-[11px]">{act.title}</p>
-                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                          {formatDate(act.timestamp, 'MMM dd, HH:mm')}
-                        </span>
+                  {activities.length > 0 ? (
+                    activities.slice(0, 8).map(act => (
+                      <div key={act.id} className="p-3 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-slate-800 text-[11px]">{act.title}</p>
+                          <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                            {formatDate(act.timestamp, 'MMM dd, HH:mm')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                          {act.description}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                        {act.description}
-                      </p>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-slate-400">
+                      No activities recorded yet. Create an invoice to get started!
                     </div>
-                  ))}
-                </div>
-
-                <div className="p-2.5 bg-slate-50 border-t border-slate-100 text-center">
-                  <button 
-                    onClick={() => {
-                      setCurrentView('reports');
-                      setShowNotifications(false);
-                    }}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                  >
-                    View Complete Audit Trail & Reports
-                  </button>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Help Modal Trigger */}
+          {/* Help Reference */}
           <button
             onClick={() => setShowHelpModal(true)}
             className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
@@ -404,78 +398,97 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
             <HelpCircle className="w-4 h-4" />
           </button>
 
-          {/* User Account Menu */}
-          <div ref={userRef} className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-1 pl-1.5 rounded-full hover:bg-slate-100 transition-colors"
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white flex items-center justify-center font-bold text-xs ring-2 ring-indigo-50">
-                AR
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 pr-1" />
-            </button>
-
-            {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-dropdown border border-slate-200 p-2 z-50 text-xs divide-y divide-slate-100">
-                <div className="px-3 py-2">
-                  <p className="font-bold text-slate-900">Alex Rivera</p>
-                  <p className="text-[11px] text-slate-400">Owner • Nexus Craft Studio</p>
+          {/* User Account / Auth Menu */}
+          {currentUser ? (
+            <div ref={userRef} className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 p-1 pl-1.5 rounded-full hover:bg-slate-100 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white flex items-center justify-center font-bold text-xs ring-2 ring-indigo-50">
+                  {currentUser.name.substring(0, 2).toUpperCase()}
                 </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 pr-1" />
+              </button>
 
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setCurrentView('settings');
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-50 font-medium"
-                  >
-                    Business Profile & Settings
-                  </button>
-                  <button
-                    onClick={() => {
-                      setCurrentView('templates');
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-50 font-medium"
-                  >
-                    Manage Templates
-                  </button>
-                </div>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-dropdown border border-slate-200 p-2 z-50 text-xs divide-y divide-slate-100">
+                  <div className="px-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold text-slate-900">{currentUser.name}</p>
+                      {currentUser.role === 'admin' && (
+                        <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 truncate">{currentUser.email}</p>
+                  </div>
 
-                <div className="pt-1">
-                  <button
-                    onClick={() => {
-                      if (confirm('Reset application data back to default demo records?')) {
-                        resetDemoData();
+                  <div className="py-1">
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setCurrentView('admin');
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 rounded-lg text-amber-800 hover:bg-amber-50 font-bold flex items-center gap-1.5"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Admin Dashboard</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setCurrentView('settings');
                         setShowUserMenu(false);
-                      }
-                    }}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 font-medium flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset to Demo Data</span>
-                  </button>
+                      }}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-50 font-medium"
+                    >
+                      Business Profile & Settings
+                    </button>
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      onClick={() => {
+                        logout();
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 font-medium flex items-center gap-2"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
       </header>
 
       {/* Help Modal */}
       {showHelpModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-preview border border-slate-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                  <Sparkles className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-base">InvoiceFlow Quick Reference</h3>
-                  <p className="text-xs text-slate-400">Everything you need to create invoices in under 2 minutes</p>
+                  <h3 className="font-bold text-slate-900 text-base">JS Invoice Quick Guide</h3>
+                  <p className="text-xs text-slate-400">Professional invoicing in under 2 minutes</p>
                 </div>
               </div>
               <button 
@@ -486,34 +499,34 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
               </button>
             </div>
 
-            <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <h4 className="font-semibold text-slate-800 mb-1 flex items-center gap-1.5">
+            <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <h4 className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  Instant Invoice Creation
+                  Your Personal Data Only
                 </h4>
                 <p>
-                  Click <strong>+ Create Invoice</strong> anywhere. Select or type a client, add line items from your product library, adjust taxes or discounts, and watch the live A4 preview update simultaneously!
+                  Every user account on JS Invoice has an isolated workspace. Invoices, clients, and catalog items you add belong exclusively to your account.
                 </p>
               </div>
 
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <h4 className="font-semibold text-slate-800 mb-1 flex items-center gap-1.5">
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <h4 className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  6 Original Professional Templates
+                  6 Original Templates & Vector PDF
                 </h4>
                 <p>
-                  Switch between <strong>Modern Business</strong>, <strong>Minimal Professional</strong>, <strong>Elegant Freelancer</strong>, <strong>Creative Agency</strong>, <strong>Corporate Classic</strong>, and <strong>GST Tax Invoice</strong> on the fly without losing entered data.
+                  Select from Modern Business, Minimal Professional, Elegant Freelancer, Creative Agency, Corporate Classic, or GST Tax Invoice, and export vector A4 PDFs instantly.
                 </p>
               </div>
 
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <h4 className="font-semibold text-slate-800 mb-1 flex items-center gap-1.5">
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <h4 className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  PDF Export & Native Clean Print
+                  Admin Control Panel
                 </h4>
                 <p>
-                  Click <strong>Download PDF</strong> for genuine high-resolution A4 vector PDF files, or <strong>Print</strong> for formatted clean printer output with no browser chrome.
+                  Administrators can access the <strong>Admin Panel</strong> from the sidebar to track platform-wide user registrations, active businesses, and gross invoiced volume.
                 </p>
               </div>
             </div>
@@ -521,7 +534,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setShowHelpModal(false)}
-                className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 transition-colors"
               >
                 Got It
               </button>
