@@ -2,9 +2,23 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const STORAGE_SUPABASE_KEY = 'js_invoice_supabase_config_v1';
 
+export const DEFAULT_SUPABASE_URL = 'https://licsggaijhpbhyrgpdfv.supabase.co';
+export const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpY3NnZ2FpamhwYmh5cmdwZGZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMjQwNTUsImV4cCI6MjEwODYwMDA1NX0.UAkt26vOBrvyZaKuv8o2nusRfBExUqfrgg-40-8awBc';
+
 export interface SupabaseConfig {
   url: string;
   anonKey: string;
+}
+
+/**
+ * Strips any trailing slashes or /rest/v1 paths from user-provided URLs
+ */
+export function sanitizeSupabaseUrl(rawUrl: string): string {
+  let cleaned = (rawUrl || '').trim();
+  cleaned = cleaned.replace(/\/+$/, '');
+  cleaned = cleaned.replace(/\/rest\/v1\/?$/, '');
+  return cleaned.trim();
 }
 
 /**
@@ -12,8 +26,8 @@ export interface SupabaseConfig {
  */
 export function getSupabaseConfig(): SupabaseConfig {
   const metaEnv = (import.meta as any).env || {};
-  let url = (metaEnv.VITE_SUPABASE_URL as string) || '';
-  let anonKey = (metaEnv.VITE_SUPABASE_ANON_KEY as string) || '';
+  let url = (metaEnv.VITE_SUPABASE_URL as string) || DEFAULT_SUPABASE_URL;
+  let anonKey = (metaEnv.VITE_SUPABASE_ANON_KEY as string) || DEFAULT_SUPABASE_ANON_KEY;
 
   if (typeof window !== 'undefined') {
     try {
@@ -30,12 +44,19 @@ export function getSupabaseConfig(): SupabaseConfig {
     }
   }
 
-  return { url: url.trim(), anonKey: anonKey.trim() };
+  return {
+    url: sanitizeSupabaseUrl(url),
+    anonKey: anonKey.trim(),
+  };
 }
 
 export function saveSupabaseConfig(config: SupabaseConfig): void {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_SUPABASE_KEY, JSON.stringify(config));
+    const sanitized = {
+      url: sanitizeSupabaseUrl(config.url),
+      anonKey: config.anonKey.trim(),
+    };
+    localStorage.setItem(STORAGE_SUPABASE_KEY, JSON.stringify(sanitized));
     cachedClient = null; // Invalidate cache so new credentials take effect immediately
   }
 }
@@ -79,11 +100,14 @@ export function getSupabase(): SupabaseClient | null {
  * Tests connection to Supabase database
  */
 export async function testSupabaseConnection(
-  url: string,
+  rawUrl: string,
   anonKey: string
 ): Promise<{ success: boolean; message: string }> {
   try {
-    if (!url || !anonKey) {
+    const url = sanitizeSupabaseUrl(rawUrl);
+    const key = (anonKey || '').trim();
+
+    if (!url || !key) {
       return { success: false, message: 'Please provide both Supabase Project URL and Anon Key.' };
     }
 
@@ -91,11 +115,10 @@ export async function testSupabaseConnection(
       return { success: false, message: 'Project URL must start with https://' };
     }
 
-    const testClient = createClient(url, anonKey);
+    const testClient = createClient(url, key);
     const { error } = await testClient.from('invoices').select('id').limit(1);
 
     if (error) {
-      // 42P01 means table does not exist yet (connection was successful, but schema needs to be run)
       if (error.code === '42P01') {
         return {
           success: true,
@@ -105,7 +128,7 @@ export async function testSupabaseConnection(
       return { success: false, message: error.message };
     }
 
-    return { success: true, message: 'Successfully connected to Supabase database!' };
+    return { success: true, message: 'Successfully connected to your live Supabase cloud database!' };
   } catch (err: any) {
     return { success: false, message: err?.message || 'Connection failed. Please check credentials.' };
   }
