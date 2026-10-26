@@ -41,6 +41,8 @@ export interface BankDetails {
   bankName: string;
   accountHolder: string;
   accountNumber: string;
+  ifscCode?: string;
+  branchName?: string;
   routingNumber?: string;
   swiftCode?: string;
   iban?: string;

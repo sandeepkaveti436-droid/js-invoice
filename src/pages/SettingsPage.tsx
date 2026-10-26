@@ -345,6 +345,7 @@ export const SettingsPage: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Bank Name</label>
                 <input
                   type="text"
+                  placeholder="e.g. Yes Bank, HDFC, SBI"
                   value={formData.business.bankDetails?.bankName || ''}
                   onChange={e =>
                     setFormData({
@@ -366,6 +367,7 @@ export const SettingsPage: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Account Holder</label>
                 <input
                   type="text"
+                  placeholder="e.g. Skynovadigitals"
                   value={formData.business.bankDetails?.accountHolder || ''}
                   onChange={e =>
                     setFormData({
@@ -387,6 +389,7 @@ export const SettingsPage: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Account / IBAN Number</label>
                 <input
                   type="text"
+                  placeholder="e.g. 01234567890123"
                   value={formData.business.bankDetails?.accountNumber || ''}
                   onChange={e =>
                     setFormData({
@@ -396,6 +399,77 @@ export const SettingsPage: React.FC = () => {
                         bankDetails: {
                           ...formData.business.bankDetails,
                           accountNumber: e.target.value,
+                        },
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  IFSC Code <span className="text-amber-600 font-bold">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. YESB0000123 / SBIN0001234"
+                  value={formData.business.bankDetails?.ifscCode || formData.business.bankDetails?.routingNumber || ''}
+                  onChange={e => {
+                    const val = e.target.value.toUpperCase();
+                    setFormData({
+                      ...formData,
+                      business: {
+                        ...formData.business,
+                        bankDetails: {
+                          ...formData.business.bankDetails,
+                          ifscCode: val,
+                          routingNumber: val,
+                        },
+                      },
+                    });
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Branch Name / SWIFT</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Hyderabad Main / YESBINBB"
+                  value={formData.business.bankDetails?.branchName || formData.business.bankDetails?.swiftCode || ''}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      business: {
+                        ...formData.business,
+                        bankDetails: {
+                          ...formData.business.bankDetails,
+                          branchName: e.target.value,
+                          swiftCode: e.target.value,
+                        },
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">UPI ID / VPA</label>
+                <input
+                  type="text"
+                  placeholder="e.g. business@upi / 9392525043@okhdfcbank"
+                  value={formData.business.bankDetails?.upiId || ''}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      business: {
+                        ...formData.business,
+                        bankDetails: {
+                          ...formData.business.bankDetails,
+                          upiId: e.target.value,
                         },
                       },
                     })

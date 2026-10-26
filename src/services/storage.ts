@@ -495,10 +495,19 @@ export const StorageService = {
       const uInvoices = invoices.filter(i => i.userId === u.id);
       const uInvoicesCount = uInvoices.length;
       const uBilledTotal = uInvoices.reduce((sum, i) => sum + (i.grandTotal || 0), 0);
+      const paidInvoices = uInvoices.filter(i => i.status === 'paid');
+      const partialInvoices = uInvoices.filter(i => i.status === 'partially_paid');
+      const unpaidInvoices = uInvoices.filter(i => i.status === 'draft' || i.status === 'sent');
+      const overdueInvoices = uInvoices.filter(i => i.status === 'overdue' || (i.dueDate && new Date(i.dueDate).getTime() < now.getTime() && (i.balanceDue || 0) > 0));
+
       return {
         ...u,
         invoicesCount: uInvoicesCount,
         billedTotal: uBilledTotal,
+        paidCount: paidInvoices.length,
+        unpaidCount: unpaidInvoices.length,
+        halfPaidCount: partialInvoices.length,
+        overdueCount: overdueInvoices.length,
       };
     });
 

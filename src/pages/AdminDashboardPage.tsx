@@ -50,7 +50,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended' | 'verified' | 'unverified'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended' | 'verified' | 'unverified' | 'paid' | 'unpaid' | 'half_paid' | 'overdue'>('all');
 
   // Form states for Add User
   const [newName, setNewName] = useState('');
@@ -104,6 +104,10 @@ export const AdminDashboardPage: React.FC = () => {
       if (statusFilter === 'suspended') matchesStatus = u.status === 'suspended';
       if (statusFilter === 'verified') matchesStatus = u.isVerified === true;
       if (statusFilter === 'unverified') matchesStatus = u.isVerified !== true;
+      if (statusFilter === 'paid') matchesStatus = ((u as any).paidCount || 0) > 0;
+      if (statusFilter === 'unpaid') matchesStatus = ((u as any).unpaidCount || 0) > 0;
+      if (statusFilter === 'half_paid') matchesStatus = ((u as any).halfPaidCount || 0) > 0;
+      if (statusFilter === 'overdue') matchesStatus = ((u as any).overdueCount || 0) > 0;
 
       return matchesSearch && matchesStatus;
     });
@@ -353,6 +357,10 @@ export const AdminDashboardPage: React.FC = () => {
               <option value="suspended">Suspended Only ({metrics.suspendedUsers})</option>
               <option value="verified">Verified ({metrics.verifiedUsers})</option>
               <option value="unverified">Pending Activation ({metrics.unverifiedUsers})</option>
+              <option value="paid">Users with Paid Invoices</option>
+              <option value="unpaid">Users with Unpaid Invoices</option>
+              <option value="half_paid">Users with Half Payment Done</option>
+              <option value="overdue">Users with Overdue Invoices</option>
             </select>
           </div>
         </div>
@@ -431,9 +439,35 @@ export const AdminDashboardPage: React.FC = () => {
                         {formatDate(user.createdAt || new Date().toISOString())}
                       </td>
 
-                      {/* Total Invoices */}
-                      <td className="py-3.5 px-3 text-center font-mono font-bold text-slate-800">
-                        {user.invoicesCount || 0}
+                      {/* Total Invoices & Payment Status Breakdown */}
+                      <td className="py-3.5 px-3 text-center">
+                        <span className="font-mono font-bold text-slate-800 text-xs block mb-1">
+                          {user.invoicesCount || 0}
+                        </span>
+                        {(user.invoicesCount || 0) > 0 && (
+                          <div className="flex flex-wrap items-center justify-center gap-1 text-[10px] font-mono">
+                            {user.paidCount > 0 && (
+                              <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200" title="Paid Invoices">
+                                {user.paidCount} Paid
+                              </span>
+                            )}
+                            {user.unpaidCount > 0 && (
+                              <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200" title="Unpaid Invoices">
+                                {user.unpaidCount} Unpaid
+                              </span>
+                            )}
+                            {user.halfPaidCount > 0 && (
+                              <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200" title="Half Paid Invoices">
+                                {user.halfPaidCount} Half
+                              </span>
+                            )}
+                            {user.overdueCount > 0 && (
+                              <span className="px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200" title="Overdue Invoices">
+                                {user.overdueCount} Overdue
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Account Status */}

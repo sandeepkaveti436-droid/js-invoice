@@ -18,7 +18,9 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Invoice, InvoiceStatus } from '../types';
@@ -41,15 +43,58 @@ export const InvoicesListPage: React.FC = () => {
   } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | InvoiceStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'half_paid' | InvoiceStatus>('all');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'number'>('date_desc');
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Modals
+  // Modals & Quick Dropdowns
   const [paymentModalInvoice, setPaymentModalInvoice] = useState<Invoice | null>(null);
   const [sendModalInvoice, setSendModalInvoice] = useState<Invoice | null>(null);
+  const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
+
+  const handleQuickStatusChange = (inv: Invoice, newStatus: 'paid' | 'unpaid' | 'half_paid' | 'overdue') => {
+    let updated: Invoice;
+    if (newStatus === 'paid') {
+      updated = {
+        ...inv,
+        status: 'paid',
+        amountPaid: inv.grandTotal,
+        balanceDue: 0,
+        paidAt: new Date().toISOString(),
+      };
+      showToast(`Invoice ${inv.number} marked as Paid in full!`, 'success');
+    } else if (newStatus === 'half_paid') {
+      const half = Math.round((inv.grandTotal / 2) * 100) / 100;
+      updated = {
+        ...inv,
+        status: 'partially_paid',
+        amountPaid: half,
+        balanceDue: Math.round((inv.grandTotal - half) * 100) / 100,
+      };
+      showToast(`Invoice ${inv.number} set to Half Payment Done (${formatMoney(half, inv.currency)})`, 'info');
+    } else if (newStatus === 'overdue') {
+      updated = {
+        ...inv,
+        status: 'overdue',
+        amountPaid: 0,
+        balanceDue: inv.grandTotal,
+      };
+      showToast(`Invoice ${inv.number} marked as Overdue`, 'info');
+    } else {
+      // Unpaid
+      updated = {
+        ...inv,
+        status: 'sent',
+        amountPaid: 0,
+        balanceDue: inv.grandTotal,
+      };
+      showToast(`Invoice ${inv.number} marked as Unpaid (Pending)`, 'info');
+    }
+    saveInvoice(updated);
+    setStatusDropdownId(null);
+  };
 
   // Filtered & Sorted Invoices
   const filteredInvoices = useMemo(() => {
@@ -61,7 +106,16 @@ export const InvoicesListPage: React.FC = () => {
         inv.client?.companyName?.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Status
-      const matchesStatus = statusFilter === 'all' ? true : inv.status === statusFilter;
+      let matchesStatus = true;
+      if (statusFilter === 'all') {
+        matchesStatus = true;
+      } else if (statusFilter === 'unpaid') {
+        matchesStatus = inv.status === 'draft' || inv.status === 'sent';
+      } else if (statusFilter === 'half_paid' || statusFilter === 'partially_paid') {
+        matchesStatus = inv.status === 'partially_paid';
+      } else {
+        matchesStatus = inv.status === statusFilter;
+      }
 
       return matchesSearch && matchesStatus;
     });
@@ -199,12 +253,10 @@ export const InvoicesListPage: React.FC = () => {
         <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs">
           {[
             { id: 'all', label: 'All Invoices', count: invoices.length },
-            { id: 'draft', label: 'Draft', count: invoices.filter(i => i.status === 'draft').length },
-            { id: 'sent', label: 'Sent', count: invoices.filter(i => i.status === 'sent').length },
-            { id: 'partially_paid', label: 'Partial', count: invoices.filter(i => i.status === 'partially_paid').length },
-            { id: 'paid', label: 'Paid', count: invoices.filter(i => i.status === 'paid').length },
-            { id: 'overdue', label: 'Overdue', count: invoices.filter(i => i.status === 'overdue').length },
-            { id: 'cancelled', label: 'Cancelled', count: invoices.filter(i => i.status === 'cancelled').length },
+            { id: 'paid', label: '🟢 Paid', count: invoices.filter(i => i.status === 'paid').length },
+            { id: 'unpaid', label: '🟡 Unpaid', count: invoices.filter(i => i.status === 'draft' || i.status === 'sent').length },
+            { id: 'partially_paid', label: '🔵 Half Payment Done', count: invoices.filter(i => i.status === 'partially_paid').length },
+            { id: 'overdue', label: '🔴 Overdue', count: invoices.filter(i => i.status === 'overdue').length },
           ].map(tab => (
             <button
               key={tab.id}
@@ -321,10 +373,60 @@ export const InvoicesListPage: React.FC = () => {
                     </button>
                   </div>
 
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusStyle.badgeClass}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dotClass}`} />
-                    {statusStyle.label}
-                  </span>
+                  <div className="relative inline-block text-left">
+                    <button
+                      type="button"
+                      onClick={() => setStatusDropdownId(statusDropdownId === `m_${inv.id}` ? null : `m_${inv.id}`)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusStyle.badgeClass}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dotClass}`} />
+                      <span>{statusStyle.label}</span>
+                      <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
+                    </button>
+
+                    {statusDropdownId === `m_${inv.id}` && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setStatusDropdownId(null)} 
+                        />
+                        <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-left">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickStatusChange(inv, 'paid')}
+                            className="w-full px-3 py-1.5 text-xs text-left hover:bg-emerald-50 text-emerald-800 font-semibold flex items-center justify-between"
+                          >
+                            <span>🟢 Paid (Full)</span>
+                            {inv.status === 'paid' && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickStatusChange(inv, 'unpaid')}
+                            className="w-full px-3 py-1.5 text-xs text-left hover:bg-amber-50 text-amber-800 font-semibold flex items-center justify-between"
+                          >
+                            <span>🟡 Unpaid (Pending)</span>
+                            {(inv.status === 'sent' || inv.status === 'draft') && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickStatusChange(inv, 'half_paid')}
+                            className="w-full px-3 py-1.5 text-xs text-left hover:bg-blue-50 text-blue-800 font-semibold flex items-center justify-between"
+                          >
+                            <span>🔵 Half Paid (50%)</span>
+                            {inv.status === 'partially_paid' && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickStatusChange(inv, 'overdue')}
+                            className="w-full px-3 py-1.5 text-xs text-left hover:bg-rose-50 text-rose-800 font-semibold flex items-center justify-between"
+                          >
+                            <span>🔴 Overdue</span>
+                            {inv.status === 'overdue' && <Check className="w-3.5 h-3.5 text-rose-600" />}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-start justify-between text-xs pt-1 border-t border-slate-100">
@@ -485,10 +587,76 @@ export const InvoicesListPage: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusStyle.badgeClass}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dotClass}`} />
-                          {statusStyle.label}
-                        </span>
+                        <div className="relative inline-block text-left">
+                          <button
+                            type="button"
+                            onClick={() => setStatusDropdownId(statusDropdownId === inv.id ? null : inv.id)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all hover:shadow-sm cursor-pointer ${statusStyle.badgeClass}`}
+                            title="Click to change payment status"
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dotClass}`} />
+                            <span>{statusStyle.label}</span>
+                            <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
+                          </button>
+
+                          {statusDropdownId === inv.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-40" 
+                                onClick={() => setStatusDropdownId(null)} 
+                              />
+                              <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 text-left">
+                                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1">
+                                  Change Payment Status
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickStatusChange(inv, 'paid')}
+                                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-emerald-50 text-emerald-800 font-semibold flex items-center justify-between transition-colors"
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                    <span>🟢 Paid (Full)</span>
+                                  </span>
+                                  {inv.status === 'paid' && <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickStatusChange(inv, 'unpaid')}
+                                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-amber-50 text-amber-800 font-semibold flex items-center justify-between transition-colors"
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                    <span>🟡 Unpaid (Pending)</span>
+                                  </span>
+                                  {(inv.status === 'sent' || inv.status === 'draft') && <Check className="w-3.5 h-3.5 text-amber-600 stroke-[3]" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickStatusChange(inv, 'half_paid')}
+                                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-blue-50 text-blue-800 font-semibold flex items-center justify-between transition-colors"
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                    <span>🔵 Half Payment Done (50%)</span>
+                                  </span>
+                                  {inv.status === 'partially_paid' && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickStatusChange(inv, 'overdue')}
+                                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-rose-50 text-rose-800 font-semibold flex items-center justify-between transition-colors"
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                    <span>🔴 Overdue</span>
+                                  </span>
+                                  {inv.status === 'overdue' && <Check className="w-3.5 h-3.5 text-rose-600 stroke-[3]" />}
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-4 text-right">

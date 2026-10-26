@@ -556,6 +556,166 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
                 />
               </div>
             </div>
+
+            {/* Payment & Settlement Status Option */}
+            <div className="pt-3 border-t border-slate-100">
+              <label className="block font-semibold text-slate-800 text-xs mb-2">
+                Invoice Payment Status:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* 1. Unpaid */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvoice(prev => ({
+                      ...prev,
+                      status: 'sent',
+                      amountPaid: 0,
+                      balanceDue: prev.grandTotal,
+                    }));
+                  }}
+                  className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                    invoice.status === 'sent' || invoice.status === 'draft'
+                      ? 'border-amber-400 bg-amber-50/80 text-amber-900 shadow-sm ring-1 ring-amber-400'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs">🟡 Unpaid</span>
+                    {(invoice.status === 'sent' || invoice.status === 'draft') && (
+                      <Check className="w-3.5 h-3.5 text-amber-600 stroke-[3]" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500">Pending payment</span>
+                </button>
+
+                {/* 2. Half Payment Done */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const half = Math.round((invoice.grandTotal / 2) * 100) / 100;
+                    setInvoice(prev => ({
+                      ...prev,
+                      status: 'partially_paid',
+                      amountPaid: half,
+                      balanceDue: Math.round((prev.grandTotal - half) * 100) / 100,
+                    }));
+                  }}
+                  className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                    invoice.status === 'partially_paid'
+                      ? 'border-blue-400 bg-blue-50/80 text-blue-900 shadow-sm ring-1 ring-blue-400'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs">🔵 Half Paid</span>
+                    {invoice.status === 'partially_paid' && (
+                      <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500">50% deposit received</span>
+                </button>
+
+                {/* 3. Paid */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvoice(prev => ({
+                      ...prev,
+                      status: 'paid',
+                      amountPaid: prev.grandTotal,
+                      balanceDue: 0,
+                      paidAt: new Date().toISOString(),
+                    }));
+                  }}
+                  className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                    invoice.status === 'paid'
+                      ? 'border-emerald-400 bg-emerald-50/80 text-emerald-900 shadow-sm ring-1 ring-emerald-400'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs">🟢 Paid</span>
+                    {invoice.status === 'paid' && (
+                      <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500">Fully settled</span>
+                </button>
+
+                {/* 4. Overdue */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvoice(prev => ({
+                      ...prev,
+                      status: 'overdue',
+                      amountPaid: 0,
+                      balanceDue: prev.grandTotal,
+                    }));
+                  }}
+                  className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                    invoice.status === 'overdue'
+                      ? 'border-rose-400 bg-rose-50/80 text-rose-900 shadow-sm ring-1 ring-rose-400'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs">🔴 Overdue</span>
+                    {invoice.status === 'overdue' && (
+                      <Check className="w-3.5 h-3.5 text-rose-600 stroke-[3]" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500">Payment past due</span>
+                </button>
+              </div>
+
+              {/* If Half Paid / Partial: show custom amount controls */}
+              {invoice.status === 'partially_paid' && (
+                <div className="mt-2.5 p-3 rounded-xl bg-blue-50/60 border border-blue-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-blue-900">Amount Paid:</span>
+                    <div className="flex items-center gap-1 font-mono">
+                      <span>{invoice.currency}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={invoice.grandTotal}
+                        value={invoice.amountPaid}
+                        onChange={e => {
+                          const val = Number(e.target.value) || 0;
+                          setInvoice(prev => ({
+                            ...prev,
+                            amountPaid: val,
+                            balanceDue: Math.max(0, Math.round((prev.grandTotal - val) * 100) / 100),
+                          }));
+                        }}
+                        className="w-28 px-2 py-1 bg-white border border-blue-300 rounded-lg text-xs font-bold text-blue-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const half = Math.round((invoice.grandTotal / 2) * 100) / 100;
+                        setInvoice(prev => ({
+                          ...prev,
+                          amountPaid: half,
+                          balanceDue: Math.round((prev.grandTotal - half) * 100) / 100,
+                        }));
+                      }}
+                      className="px-2 py-0.5 rounded bg-blue-600 text-white font-bold text-[10px] hover:bg-blue-700 transition-colors"
+                    >
+                      Reset 50%
+                    </button>
+                    <span className="font-mono text-slate-600 text-xs">
+                      Remaining Due: <strong className="text-amber-800">{formatMoney(invoice.balanceDue, invoice.currency)}</strong>
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Step 2: Business Profile Information */}
@@ -1302,46 +1462,109 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Bank Name</label>
-                <input
-                  type="text"
-                  value={invoice.bankDetails?.bankName || ''}
-                  onChange={e =>
-                    setInvoice({
-                      ...invoice,
-                      bankDetails: { ...invoice.bankDetails, bankName: e.target.value },
-                    })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                />
-              </div>
+            {/* Bank Remittance Details */}
+            <div className="pt-2 border-t border-slate-100">
+              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-2">
+                Bank Remittance & Payment Details
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Bank Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Yes Bank"
+                    value={invoice.bankDetails?.bankName || ''}
+                    onChange={e =>
+                      setInvoice({
+                        ...invoice,
+                        bankDetails: { ...invoice.bankDetails, bankName: e.target.value },
+                      })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Account Number / IBAN</label>
-                <input
-                  type="text"
-                  value={invoice.bankDetails?.accountNumber || ''}
-                  onChange={e =>
-                    setInvoice({
-                      ...invoice,
-                      bankDetails: { ...invoice.bankDetails, accountNumber: e.target.value },
-                    })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
-                />
-              </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Account Holder</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Skynovadigitals"
+                    value={invoice.bankDetails?.accountHolder || invoice.business?.name || ''}
+                    onChange={e =>
+                      setInvoice({
+                        ...invoice,
+                        bankDetails: { ...invoice.bankDetails, accountHolder: e.target.value },
+                      })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Authorized Signatory</label>
-                <input
-                  type="text"
-                  value={invoice.authorizedSignatoryName || ''}
-                  onChange={e => setInvoice({ ...invoice, authorizedSignatoryName: e.target.value })}
-                  placeholder="Alex Rivera"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                />
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Account Number / IBAN</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 01234567890123"
+                    value={invoice.bankDetails?.accountNumber || ''}
+                    onChange={e =>
+                      setInvoice({
+                        ...invoice,
+                        bankDetails: { ...invoice.bankDetails, accountNumber: e.target.value },
+                      })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    IFSC Code <span className="text-amber-600 font-bold">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. YESB0000123 / SBIN0001234"
+                    value={invoice.bankDetails?.ifscCode || invoice.bankDetails?.routingNumber || ''}
+                    onChange={e => {
+                      const val = e.target.value.toUpperCase();
+                      setInvoice({
+                        ...invoice,
+                        bankDetails: {
+                          ...invoice.bankDetails,
+                          ifscCode: val,
+                          routingNumber: val,
+                        },
+                      });
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">UPI ID / VPA</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. skynova@upi"
+                    value={invoice.bankDetails?.upiId || ''}
+                    onChange={e =>
+                      setInvoice({
+                        ...invoice,
+                        bankDetails: { ...invoice.bankDetails, upiId: e.target.value },
+                      })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Authorized Signatory</label>
+                  <input
+                    type="text"
+                    value={invoice.authorizedSignatoryName || ''}
+                    onChange={e => setInvoice({ ...invoice, authorizedSignatoryName: e.target.value })}
+                    placeholder="Authorized Person"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
               </div>
             </div>
           </div>

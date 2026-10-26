@@ -351,10 +351,19 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
 
               <div className="grid grid-cols-12 gap-2">
                 <span className="col-span-5 font-bold text-slate-700">IFS code</span>
-                <span className="col-span-7 font-mono font-medium text-slate-800">
-                  {invoice.bankDetails?.routingNumber || '—'}
+                <span className="col-span-7 font-mono font-medium text-slate-800 uppercase">
+                  {invoice.bankDetails?.ifscCode || invoice.bankDetails?.routingNumber || '—'}
                 </span>
               </div>
+
+              {invoice.bankDetails?.upiId && (
+                <div className="grid grid-cols-12 gap-2">
+                  <span className="col-span-5 font-bold text-slate-700">UPI / VPA</span>
+                  <span className="col-span-7 font-mono font-medium text-slate-800">
+                    {invoice.bankDetails.upiId}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
