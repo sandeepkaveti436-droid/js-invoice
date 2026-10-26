@@ -61,7 +61,7 @@ export const TemplateRenderer: React.FC<Props> = ({
     >
       <div 
         id="invoice-document"
-        className="a4-paper-container relative overflow-hidden"
+        className="a4-paper-container relative overflow-hidden flex flex-col min-h-[1123px] w-full"
       >
         {/* Optional Watermark */}
         {showWatermark && watermarkText && (
@@ -76,7 +76,7 @@ export const TemplateRenderer: React.FC<Props> = ({
         )}
 
         {/* Template Layout */}
-        <div className="relative z-0">
+        <div className="relative z-0 flex-1 flex flex-col h-full w-full">
           {renderTemplateContent()}
         </div>
       </div>

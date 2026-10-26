@@ -44,6 +44,7 @@ export async function exportInvoiceToPdf(
 
   const { width: pdfWidth, height: pdfHeight, jsPdfFormat } = paperDimensions[paperSize] || paperDimensions.a4;
   const targetWidthPx = paperSize === 'a3' ? 1120 : paperSize === 'letter' ? 816 : 794;
+  const targetHeightPx = Math.round(targetWidthPx * (pdfHeight / pdfWidth));
 
   try {
     const canvas = await html2canvas(element, {
@@ -67,6 +68,7 @@ export async function exportInvoiceToPdf(
           clonedEl.style.width = `${targetWidthPx}px`;
           clonedEl.style.minWidth = `${targetWidthPx}px`;
           clonedEl.style.maxWidth = `${targetWidthPx}px`;
+          clonedEl.style.minHeight = `${targetHeightPx}px`;
           clonedEl.style.boxShadow = 'none';
           clonedEl.style.margin = '0 auto';
           clonedEl.style.transform = 'none';
