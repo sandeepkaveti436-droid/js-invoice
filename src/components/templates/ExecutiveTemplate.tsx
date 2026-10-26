@@ -17,7 +17,7 @@ export const ExecutiveTemplate: React.FC<Props> = ({ invoice, customization, vis
 
   return (
     <div 
-      className="p-8 text-slate-900 bg-white min-h-[1060px] flex flex-col justify-between font-sans selection:bg-slate-100"
+      className="p-8 text-slate-900 bg-white min-h-[980px] flex flex-col justify-between font-sans selection:bg-slate-100"
       style={{ fontFamily: customization?.fontFamily || invoice.templateConfig?.fontFamily || 'Inter, sans-serif' }}
     >
       <div>

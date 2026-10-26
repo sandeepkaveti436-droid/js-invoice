@@ -17,6 +17,7 @@ import { Client } from '../types';
 import { StorageService } from '../services/storage';
 import { formatMoney } from '../utils/currency';
 import { formatDate } from '../utils/formatters';
+import { CountrySelect } from '../components/common/CountrySelect';
 
 export const ClientsPage: React.FC = () => {
   const { 
@@ -357,11 +358,9 @@ export const ClientsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Country</label>
-                  <input
-                    type="text"
-                    value={formData.country || ''}
-                    onChange={e => setFormData({ ...formData, country: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  <CountrySelect
+                    value={formData.country || 'United States'}
+                    onChange={(name) => setFormData({ ...formData, country: name })}
                   />
                 </div>
                 <div>

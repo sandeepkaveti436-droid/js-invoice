@@ -18,6 +18,7 @@ import { useApp } from '../context/AppContext';
 import { AppSettings, TemplateCustomization } from '../types';
 import { CURRENCIES } from '../utils/currency';
 import { StorageService } from '../services/storage';
+import { CountrySelect } from '../components/common/CountrySelect';
 
 export const SettingsPage: React.FC = () => {
   const { currentUser, settings, updateSettings, clearMyData, showToast } = useApp();
@@ -213,7 +214,7 @@ export const SettingsPage: React.FC = () => {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">City</label>
                 <input
@@ -254,6 +255,18 @@ export const SettingsPage: React.FC = () => {
                     })
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Country</label>
+                <CountrySelect
+                  value={formData.business.country || 'India'}
+                  onChange={countryName =>
+                    setFormData({
+                      ...formData,
+                      business: { ...formData.business, country: countryName },
+                    })
+                  }
                 />
               </div>
             </div>

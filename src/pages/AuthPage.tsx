@@ -19,26 +19,11 @@ import {
   Send,
   Copy,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  Search
 } from 'lucide-react';
 import { validateOfficialEmail, validatePassword, checkPasswordCriteria } from '../utils/validation';
-
-interface CountryCode {
-  name: string;
-  code: string;
-  flag: string;
-}
-
-const COUNTRIES: CountryCode[] = [
-  { name: 'India', code: '+91', flag: '🇮🇳' },
-  { name: 'United States', code: '+1', flag: '🇺🇸' },
-  { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
-  { name: 'United Arab Emirates', code: '+971', flag: '🇦🇪' },
-  { name: 'Canada', code: '+1', flag: '🇨🇦' },
-  { name: 'Australia', code: '+61', flag: '🇦🇺' },
-  { name: 'Singapore', code: '+65', flag: '🇸🇬' },
-  { name: 'Germany', code: '+49', flag: '🇩🇪' },
-];
+import { COUNTRIES_LIST, Country } from '../utils/countries';
 
 const CAROUSEL_SLIDES = [
   {
@@ -68,7 +53,8 @@ export const AuthPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(COUNTRIES[0]);
+  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES_LIST[0]);
+  const [countrySearch, setCountrySearch] = useState('');
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -239,7 +225,7 @@ export const AuthPage: React.FC = () => {
           return;
         }
 
-        const fullPhoneNumber = phone.trim() ? `${selectedCountry.code} ${phone.trim()}` : '';
+        const fullPhoneNumber = phone.trim() ? `${selectedCountry.dialCode} ${phone.trim()}` : '';
 
         try {
           // Attempt registration and generate official verification link
@@ -640,26 +626,46 @@ export const AuthPage: React.FC = () => {
                       <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                     </button>
 
-                    {/* Country Dropdown Popover */}
+                    {/* Country Dropdown Popover with Search & Full Global Countries */}
                     {isCountryDropdownOpen && (
-                      <div className="absolute z-30 left-0 top-full mt-1.5 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 max-h-48 overflow-y-auto">
-                        {COUNTRIES.map((c) => (
-                          <button
-                            key={c.name}
-                            type="button"
-                            onClick={() => {
-                              setSelectedCountry(c);
-                              setIsCountryDropdownOpen(false);
-                            }}
-                            className="w-full px-3 py-1.5 text-left text-xs flex items-center justify-between hover:bg-slate-50 transition-colors"
-                          >
-                            <span className="flex items-center gap-2">
-                              <span>{c.flag}</span>
-                              <span className="font-medium text-slate-800">{c.name}</span>
-                            </span>
-                            <span className="text-slate-500 font-mono">{c.code}</span>
-                          </button>
-                        ))}
+                      <div className="absolute z-30 left-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-2 max-h-56 flex flex-col">
+                        <div className="relative mb-1.5 shrink-0">
+                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={countrySearch}
+                            onChange={(e) => setCountrySearch(e.target.value)}
+                            placeholder="Search country..."
+                            className="w-full pl-7 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="overflow-y-auto divide-y divide-slate-50 flex-1">
+                          {COUNTRIES_LIST
+                            .filter(c => {
+                              const q = countrySearch.trim().toLowerCase();
+                              if (!q) return true;
+                              return c.name.toLowerCase().includes(q) || c.dialCode.includes(q) || c.code.toLowerCase().includes(q);
+                            })
+                            .map((c) => (
+                              <button
+                                key={`${c.code}-${c.name}`}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCountry(c);
+                                  setIsCountryDropdownOpen(false);
+                                  setCountrySearch('');
+                                }}
+                                className="w-full px-2.5 py-1.5 text-left text-xs flex items-center justify-between hover:bg-slate-50 rounded-lg transition-colors"
+                              >
+                                <span className="flex items-center gap-2 truncate">
+                                  <span className="text-sm">{c.flag}</span>
+                                  <span className="font-medium text-slate-800 truncate">{c.name}</span>
+                                </span>
+                                <span className="text-slate-500 font-mono text-[11px] shrink-0 ml-2">{c.dialCode}</span>
+                              </button>
+                            ))}
+                        </div>
                       </div>
                     )}
                   </div>

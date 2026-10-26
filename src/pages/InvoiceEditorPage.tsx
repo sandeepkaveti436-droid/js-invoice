@@ -19,6 +19,7 @@ import { TemplateRenderer } from '../components/templates/TemplateRenderer';
 import { ClientSelectModal } from '../components/invoice/ClientSelectModal';
 import { SendInvoiceModal } from '../components/invoice/SendInvoiceModal';
 import { RecordPaymentModal } from '../components/invoice/RecordPaymentModal';
+import { CountrySelect } from '../components/common/CountrySelect';
 import { 
   Save, 
   Download, 
@@ -715,42 +716,54 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">City, State</label>
-                  <input
-                    type="text"
-                    value={`${invoice.business?.city || ''}, ${invoice.business?.state || ''}`}
-                    onChange={e => {
-                      const [c, s] = e.target.value.split(',');
-                      setInvoice({
-                        ...invoice,
-                        business: {
-                          ...invoice.business,
-                          city: c?.trim() || '',
-                          state: s?.trim() || '',
-                        },
-                      });
-                    }}
-                    placeholder="San Francisco, CA"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Postal Code</label>
-                  <input
-                    type="text"
-                    value={invoice.business?.postalCode || ''}
-                    onChange={e =>
-                      setInvoice({
-                        ...invoice,
-                        business: { ...invoice.business, postalCode: e.target.value },
-                      })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
-                  />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">City, State</label>
+                <input
+                  type="text"
+                  value={`${invoice.business?.city || ''}${invoice.business?.state ? `, ${invoice.business.state}` : ''}`}
+                  onChange={e => {
+                    const [c, s] = e.target.value.split(',');
+                    setInvoice({
+                      ...invoice,
+                      business: {
+                        ...invoice.business,
+                        city: c?.trim() || '',
+                        state: s?.trim() || '',
+                      },
+                    });
+                  }}
+                  placeholder="San Francisco, CA"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
               </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Postal Code</label>
+                <input
+                  type="text"
+                  value={invoice.business?.postalCode || ''}
+                  onChange={e =>
+                    setInvoice({
+                      ...invoice,
+                      business: { ...invoice.business, postalCode: e.target.value },
+                    })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Country</label>
+                <CountrySelect
+                  value={invoice.business?.country || 'India'}
+                  onChange={countryName =>
+                    setInvoice({
+                      ...invoice,
+                      business: { ...invoice.business, country: countryName },
+                    })
+                  }
+                />
+              </div>
+            </div>
             </div>
           </div>
 
@@ -842,7 +855,7 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Client Phone / Contact</label>
                 <input
@@ -872,6 +885,19 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
                   }
                   placeholder="e.g. Hyderabad, Telangana"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Client Country</label>
+                <CountrySelect
+                  value={invoice.client?.country || 'India'}
+                  onChange={countryName =>
+                    setInvoice({
+                      ...invoice,
+                      client: { ...invoice.client, country: countryName },
+                    })
+                  }
                 />
               </div>
             </div>

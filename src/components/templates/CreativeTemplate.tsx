@@ -17,7 +17,7 @@ export const CreativeTemplate: React.FC<Props> = ({ invoice, customization, visi
 
   return (
     <div 
-      className="p-8 text-slate-800 bg-white min-h-[1060px] flex flex-col justify-between font-sans selection:bg-indigo-100 relative overflow-hidden"
+      className="p-8 text-slate-800 bg-white min-h-[980px] flex flex-col justify-between font-sans selection:bg-indigo-100 relative overflow-hidden"
       style={{ fontFamily: customization?.fontFamily || invoice.templateConfig?.fontFamily || 'Plus Jakarta Sans, sans-serif' }}
     >
       {/* Top Creative Accent Gradient Band */}
