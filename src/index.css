@@ -154,6 +154,19 @@
     overflow: hidden !important;
   }
 
+  .print-scale-reset {
+    transform: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0 !important;
+  }
+
+  .print-scale-reset > div {
+    transform: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
   @page {
     size: A4 portrait;
     margin: 0;

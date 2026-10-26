@@ -193,8 +193,8 @@ export const InvoiceDetailPage: React.FC = () => {
       {/* Two Column Content: Left Document Preview (8 cols), Right Activity & Payment History (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Document Preview */}
-        <div className="lg:col-span-8 bg-slate-100/70 p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-inner flex justify-center overflow-x-auto">
-          <TemplateRenderer invoice={invoice} zoomScale={0.95} />
+        <div className="lg:col-span-8 bg-slate-100/70 p-3 sm:p-6 rounded-2xl border border-slate-200/80 shadow-inner flex justify-center overflow-x-auto">
+          <TemplateRenderer invoice={invoice} />
         </div>
 
         {/* Right Side: Payment History & Activity Timeline */}

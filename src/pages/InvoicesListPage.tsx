@@ -289,8 +289,128 @@ export const InvoicesListPage: React.FC = () => {
         </div>
       )}
 
-      {/* Invoices Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-subtle overflow-hidden">
+      {/* Invoices List - Dual Mode: Mobile Cards (<md) & Desktop Data Table (>=md) */}
+      
+      {/* Mobile Card List (Visible on phones) */}
+      <div className="block md:hidden space-y-3">
+        {paginatedInvoices.length > 0 ? (
+          paginatedInvoices.map(inv => {
+            const isSelected = selectedInvoiceIds.includes(inv.id);
+            const statusStyle = getInvoiceStatusStyle(inv.status, inv.dueDate);
+
+            return (
+              <div
+                key={inv.id}
+                className={`bg-white rounded-2xl p-4 border border-slate-200/90 shadow-subtle space-y-3 transition-colors ${
+                  isSelected ? 'border-indigo-500 bg-indigo-50/20 ring-1 ring-indigo-500' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectOne(inv.id)}
+                      className="w-4 h-4 rounded text-indigo-600"
+                    />
+                    <button
+                      onClick={() => openViewInvoice(inv.id)}
+                      className="font-mono font-bold text-sm text-slate-900 hover:text-indigo-600"
+                    >
+                      {inv.number}
+                    </button>
+                  </div>
+
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusStyle.badgeClass}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dotClass}`} />
+                    {statusStyle.label}
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between text-xs pt-1 border-t border-slate-100">
+                  <div>
+                    <p className="font-semibold text-slate-900">{inv.client?.name || 'Unnamed Client'}</p>
+                    {inv.client?.companyName && (
+                      <p className="text-[11px] text-slate-400">{inv.client.companyName}</p>
+                    )}
+                    <p className="text-[11px] text-slate-500 mt-0.5">Due: {formatDate(inv.dueDate)}</p>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-base text-slate-900 block">
+                      {formatMoney(inv.grandTotal, inv.currency)}
+                    </span>
+                    {inv.balanceDue > 0 && inv.status !== 'draft' && (
+                      <span className="text-[11px] font-mono text-amber-700 font-semibold block">
+                        Due: {formatMoney(inv.balanceDue, inv.currency)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mobile Touch Action Strip */}
+                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => openViewInvoice(inv.id)}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View</span>
+                    </button>
+                    <button
+                      onClick={() => openEditInvoice(inv.id)}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium flex items-center gap-1"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {inv.balanceDue > 0 && (
+                      <button
+                        onClick={() => setPaymentModalInvoice(inv)}
+                        className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        title="Record Payment"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setSendModalInvoice(inv)}
+                      className="p-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                      title="Send Invoice"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete invoice ${inv.number}?`)) {
+                          deleteInvoice(inv.id);
+                        }
+                      }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="bg-white rounded-2xl p-8 text-center text-slate-400 border border-slate-200">
+            <FileText className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+            <p className="font-semibold text-slate-600">No invoices found</p>
+            <p className="text-xs text-slate-400 mt-0.5">Try altering your search or status filters.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Invoices Table */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-subtle overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

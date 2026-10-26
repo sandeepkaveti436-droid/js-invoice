@@ -104,10 +104,10 @@ export const PublicInvoiceView: React.FC<Props> = ({ invoiceId, onExit }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               onClick={() => exportInvoiceToPdf('invoice-document', `${invoice.number}.pdf`)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 shadow-subtle transition-colors"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 shadow-subtle transition-colors"
             >
               <Download className="w-4 h-4 text-slate-500" />
               <span>Download PDF</span>
@@ -115,7 +115,7 @@ export const PublicInvoiceView: React.FC<Props> = ({ invoiceId, onExit }) => {
 
             <button
               onClick={() => printInvoice()}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 shadow-subtle transition-colors"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 shadow-subtle transition-colors"
             >
               <Printer className="w-4 h-4 text-slate-500" />
               <span>Print</span>
@@ -125,11 +125,11 @@ export const PublicInvoiceView: React.FC<Props> = ({ invoiceId, onExit }) => {
               <button
                 onClick={handleSimulatePayment}
                 disabled={isProcessingPayment}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-200 transition-all active:scale-95"
+                className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-200 transition-all active:scale-95"
               >
                 <CreditCard className="w-4 h-4" />
                 <span>
-                  {isProcessingPayment ? 'Processing...' : `Pay ${formatMoney(invoice.balanceDue, invoice.currency)}`}
+                  {isProcessingPayment ? 'Processing...' : `Pay Now (${formatMoney(invoice.balanceDue, invoice.currency)})`}
                 </span>
               </button>
             )}
@@ -137,7 +137,7 @@ export const PublicInvoiceView: React.FC<Props> = ({ invoiceId, onExit }) => {
             {onExit && (
               <button
                 onClick={onExit}
-                className="text-xs text-slate-500 hover:text-slate-800 px-2 py-1"
+                className="col-span-2 sm:col-span-1 text-xs text-slate-500 hover:text-slate-800 px-2 py-1 text-center"
               >
                 Close View
               </button>
@@ -158,8 +158,8 @@ export const PublicInvoiceView: React.FC<Props> = ({ invoiceId, onExit }) => {
         )}
 
         {/* The Clean A4 Invoice Document */}
-        <div className="bg-white rounded-2xl shadow-preview border border-slate-200/80 p-2 sm:p-6 overflow-hidden">
-          <TemplateRenderer invoice={invoice} zoomScale={1} />
+        <div className="bg-white rounded-2xl shadow-preview border border-slate-200/80 p-2 sm:p-6 overflow-hidden flex justify-center">
+          <TemplateRenderer invoice={invoice} />
         </div>
 
         {/* Security Footer */}
