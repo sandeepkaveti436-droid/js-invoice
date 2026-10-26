@@ -10,10 +10,11 @@ import {
   Trash2, 
   ChevronRight, 
   FileText,
-  DollarSign
+  DollarSign,
+  Crown
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Client } from '../types';
+import { Client, User } from '../types';
 import { StorageService } from '../services/storage';
 import { formatMoney } from '../utils/currency';
 import { formatDate } from '../utils/formatters';
@@ -21,6 +22,7 @@ import { CountrySelect } from '../components/common/CountrySelect';
 
 export const ClientsPage: React.FC = () => {
   const { 
+    currentUser,
     clients, 
     saveClient, 
     deleteClient, 
@@ -28,6 +30,14 @@ export const ClientsPage: React.FC = () => {
     openCreateInvoice,
     settings
   } = useApp();
+
+  const isAdmin = currentUser?.role === 'admin';
+  const allUsers = React.useMemo(() => StorageService.getUsers(), []);
+  const userMap = React.useMemo(() => {
+    const map = new Map<string, User>();
+    allUsers.forEach(u => map.set(u.id, u));
+    return map;
+  }, [allUsers]);
 
   const defaultCurr = settings?.invoiceDefaults?.defaultCurrency || 'INR';
 
@@ -110,11 +120,21 @@ export const ClientsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Client Directory
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              {isAdmin ? 'Platform Client Directory' : 'Client Directory'}
+            </h2>
+            {isAdmin && (
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 uppercase tracking-wider flex items-center gap-1">
+                <Crown className="w-3 h-3 text-purple-600" />
+                Super Admin
+              </span>
+            )}
+          </div>
           <p className="text-xs sm:text-sm text-slate-500">
-            Manage your customer database, billing addresses, and individual statements.
+            {isAdmin 
+              ? 'Manage and inspect all customer profiles and balances created across platform tenants.' 
+              : 'Manage your customer database, billing addresses, and individual statements.'}
           </p>
         </div>
 
@@ -171,6 +191,11 @@ export const ClientsPage: React.FC = () => {
                         <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                           <Building className="w-3 h-3 text-slate-400" />
                           <span>{client.companyName}</span>
+                        </p>
+                      )}
+                      {isAdmin && (
+                        <p className="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 mt-1 inline-block">
+                          👤 {userMap.get(client.userId || '')?.email || client.userId}
                         </p>
                       )}
                     </div>

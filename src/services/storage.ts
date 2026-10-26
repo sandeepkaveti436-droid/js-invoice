@@ -678,7 +678,14 @@ export const StorageService = {
 
   // Invoices (Isolated per User)
   getAllInvoicesRaw(): Invoice[] {
-    return readStorage<Invoice[]>(STORAGE_KEYS.INVOICES, []);
+    const all = readStorage<Invoice[]>(STORAGE_KEYS.INVOICES, []);
+    const today = new Date().toISOString().split('T')[0];
+    return all.map(inv => {
+      if ((inv.status === 'sent' || inv.status === 'partially_paid') && inv.dueDate < today && (inv.balanceDue || 0) > 0) {
+        return { ...inv, status: 'overdue' as const };
+      }
+      return inv;
+    });
   },
 
   getInvoices(userId?: string): Invoice[] {
@@ -706,10 +713,13 @@ export const StorageService = {
 
   saveInvoice(invoice: Invoice, userId?: string): Invoice {
     const current = this.getCurrentUser();
-    const effectiveUserId = userId || invoice.userId || current?.id || 'user_guest';
-
     const allInvoices = this.getAllInvoicesRaw();
     const index = allInvoices.findIndex(i => i.id === invoice.id);
+    const existing = index >= 0 ? allInvoices[index] : null;
+
+    // Preserve existing tenant owner so admin editing does not hijack tenant ownership
+    const effectiveUserId = invoice.userId || existing?.userId || (current?.role === 'admin' ? (userId || current?.id) : (userId || current?.id || 'user_guest'));
+
     const now = new Date().toISOString();
 
     const updatedInvoice: Invoice = {
@@ -803,10 +813,11 @@ export const StorageService = {
 
   saveQuote(quote: Quote, userId?: string): Quote {
     const current = this.getCurrentUser();
-    const effectiveUserId = userId || quote.userId || current?.id || 'user_guest';
-
     const all = this.getAllQuotesRaw();
     const index = all.findIndex(q => q.id === quote.id);
+    const existing = index >= 0 ? all[index] : null;
+
+    const effectiveUserId = quote.userId || existing?.userId || (current?.role === 'admin' ? (userId || current?.id) : (userId || current?.id || 'user_guest'));
     const now = new Date().toISOString();
 
     const updatedQuote: Quote = {
@@ -946,10 +957,12 @@ export const StorageService = {
 
   saveClient(client: Client, userId?: string): Client {
     const current = this.getCurrentUser();
-    const effectiveUserId = userId || client.userId || current?.id || 'user_guest';
-
     const all = this.getAllClientsRaw();
     const index = all.findIndex(c => c.id === client.id);
+    const existing = index >= 0 ? all[index] : null;
+
+    // Preserve existing tenant owner so admin editing does not hijack tenant ownership
+    const effectiveUserId = client.userId || existing?.userId || (current?.role === 'admin' ? (userId || current?.id) : (userId || current?.id || 'user_guest'));
 
     const updatedClient: Client = {
       ...client,
@@ -997,16 +1010,20 @@ export const StorageService = {
   },
 
   getClientMetrics(clientId: string, userId?: string) {
-    const userInvoices = this.getInvoices(userId).filter(i => i.client?.id === clientId && i.status !== 'cancelled');
-    const totalInvoiced = userInvoices.reduce((acc, i) => acc + i.grandTotal, 0);
-    const totalPaid = userInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
-    const balanceDue = userInvoices.reduce((acc, i) => acc + i.balanceDue, 0);
+    const current = this.getCurrentUser();
+    const invoices = (current?.role === 'admin' && !userId) 
+      ? this.getAllInvoicesRaw() 
+      : this.getInvoices(userId || current?.id);
+    const clientInvoices = invoices.filter(i => (i.client?.id === clientId || (i as any).clientId === clientId) && i.status !== 'cancelled');
+    const totalInvoiced = clientInvoices.reduce((acc, i) => acc + i.grandTotal, 0);
+    const totalPaid = clientInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
+    const balanceDue = clientInvoices.reduce((acc, i) => acc + i.balanceDue, 0);
     return {
       totalInvoiced: Math.round(totalInvoiced * 100) / 100,
       totalPaid: Math.round(totalPaid * 100) / 100,
       balanceDue: Math.round(balanceDue * 100) / 100,
-      invoiceCount: userInvoices.length,
-      invoices: userInvoices,
+      invoiceCount: clientInvoices.length,
+      invoices: clientInvoices,
     };
   },
 

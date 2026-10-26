@@ -130,14 +130,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
 
-    // 1. Instant local read for zero-delay UI response
-    setInvoices(StorageService.getInvoices(user.id));
-    setQuotes(StorageService.getQuotes(user.id));
-    setClients(StorageService.getClients(user.id));
-    setProducts(StorageService.getProducts(user.id));
-    setPayments(StorageService.getPayments(user.id));
+    // 1. Instant local read: Super Admin loads ALL platform tenant records; regular user loads their own
+    const isAdmin = user.role === 'admin';
+    setInvoices(isAdmin ? StorageService.getAllInvoicesRaw() : StorageService.getInvoices(user.id));
+    setQuotes(isAdmin ? StorageService.getAllQuotesRaw() : StorageService.getQuotes(user.id));
+    setClients(isAdmin ? StorageService.getAllClientsRaw() : StorageService.getClients(user.id));
+    setProducts(isAdmin ? StorageService.getAllProductsRaw() : StorageService.getProducts(user.id));
+    setPayments(isAdmin ? StorageService.getAllPaymentsRaw() : StorageService.getPayments(user.id));
     setSettings(StorageService.getUserSettings(user.id));
-    setActivities(StorageService.getActivities(user.id));
+    setActivities(isAdmin ? StorageService.getAllActivitiesRaw() : StorageService.getActivities(user.id));
+    if (isAdmin) {
+      setAdminMetrics(StorageService.getAdminPlatformMetrics());
+    }
 
     // 2. Seamless cloud sync from Supabase if connected
     if (isSupabaseConfigured()) {
@@ -146,11 +150,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const allUsers = StorageService.getUsers();
         SupabaseSync.syncPlatformUsers(allUsers).catch(() => {});
 
-        const cloudInvoices = await SupabaseSync.fetchInvoices(user.id);
+        // Super Admin fetches all tenant invoices from cloud; regular user fetches only their own
+        const cloudInvoices = await SupabaseSync.fetchInvoices(isAdmin ? undefined : user.id);
         if (cloudInvoices && cloudInvoices.length > 0) {
-          cloudInvoices.forEach(inv => StorageService.saveInvoice(inv, user.id));
-          setInvoices(StorageService.getInvoices(user.id));
-        } else {
+          cloudInvoices.forEach(inv => StorageService.saveInvoice(inv, inv.userId || user.id));
+          setInvoices(isAdmin ? StorageService.getAllInvoicesRaw() : StorageService.getInvoices(user.id));
+        } else if (!isAdmin) {
           // If cloud has no invoices yet, push local ones to Supabase
           const localInvoices = StorageService.getInvoices(user.id);
           if (localInvoices.length > 0) {
@@ -158,11 +163,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           }
         }
 
-        const cloudClients = await SupabaseSync.fetchClients(user.id);
+        const cloudClients = await SupabaseSync.fetchClients(isAdmin ? undefined : user.id);
         if (cloudClients && cloudClients.length > 0) {
-          cloudClients.forEach(c => StorageService.saveClient(c, user.id));
-          setClients(StorageService.getClients(user.id));
-        } else {
+          cloudClients.forEach(c => StorageService.saveClient(c, c.userId || user.id));
+          setClients(isAdmin ? StorageService.getAllClientsRaw() : StorageService.getClients(user.id));
+        } else if (!isAdmin) {
           // If cloud has no clients yet, push local ones to Supabase
           const localClients = StorageService.getClients(user.id);
           if (localClients.length > 0) {
@@ -170,9 +175,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           }
         }
 
-        const cloudPayments = await SupabaseSync.fetchPayments(user.id);
+        const cloudPayments = await SupabaseSync.fetchPayments(isAdmin ? undefined : user.id);
         if (cloudPayments && cloudPayments.length > 0) {
-          setPayments(StorageService.getPayments(user.id));
+          setPayments(isAdmin ? StorageService.getAllPaymentsRaw() : StorageService.getPayments(user.id));
         }
       } catch (err) {
         console.warn('Background Supabase sync error:', err);
@@ -320,7 +325,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Data Operations (Scoped to currentUser with background cloud sync)
   const handleSaveInvoice = (invoice: Invoice): Invoice => {
-    const saved = StorageService.saveInvoice(invoice, currentUser?.id);
+    // Preserve original tenant ownership when admin edits
+    const effectiveUserId = invoice.userId || (currentUser?.role === 'admin' ? undefined : currentUser?.id);
+    const saved = StorageService.saveInvoice(invoice, effectiveUserId);
     refreshData();
     showToast(`Invoice ${saved.number} saved!`, 'success');
     SupabaseSync.upsertInvoice(saved).catch(() => {});
@@ -386,7 +393,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const handleSaveClient = (client: Client): Client => {
-    const saved = StorageService.saveClient(client, currentUser?.id);
+    // Preserve original tenant ownership when admin edits
+    const effectiveUserId = client.userId || (currentUser?.role === 'admin' ? undefined : currentUser?.id);
+    const saved = StorageService.saveClient(client, effectiveUserId);
     refreshData();
     showToast(`Client "${saved.name}" saved!`, 'success');
     SupabaseSync.upsertClient(saved).catch(() => {});

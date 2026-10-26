@@ -511,6 +511,15 @@ export const AdminDashboardPage: React.FC = () => {
                             </button>
                           )}
 
+                          {/* View Invoices */}
+                          <button
+                            onClick={() => setCurrentView('invoices')}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title="View Tenant Invoices"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                          </button>
+
                           {/* Reset Password */}
                           <button
                             onClick={() => setResetPassUser(user)}

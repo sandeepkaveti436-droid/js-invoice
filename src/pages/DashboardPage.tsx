@@ -15,8 +15,12 @@ import {
   Eye,
   Download,
   CreditCard,
-  ChevronRight
+  ChevronRight,
+  Crown,
+  Users
 } from 'lucide-react';
+import { StorageService } from '../services/storage';
+import { User } from '../types';
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -118,6 +122,14 @@ export const DashboardPage: React.FC = () => {
     setCurrentView,
     openClientDetail
   } = useApp();
+
+  const isAdmin = currentUser?.role === 'admin';
+  const allUsers = useMemo(() => StorageService.getUsers(), []);
+  const userMap = useMemo(() => {
+    const map = new Map<string, User>();
+    allUsers.forEach(u => map.set(u.id, u));
+    return map;
+  }, [allUsers]);
 
   const [chartRange, setChartRange] = useState<TimeRange>('half_yearly');
   const defaultCurr = settings?.invoiceDefaults?.defaultCurrency || 'INR';
@@ -333,46 +345,78 @@ export const DashboardPage: React.FC = () => {
       {/* Welcome & Quick Action Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {currentUser ? `Welcome back, ${currentUser.name}` : 'Financial Performance'}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              {isAdmin ? 'Platform Executive Overview' : (currentUser ? `Welcome back, ${currentUser.name}` : 'Financial Performance')}
+            </h2>
+            {isAdmin && (
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 uppercase tracking-wider flex items-center gap-1">
+                <Crown className="w-3 h-3 text-purple-600" />
+                Super Admin
+              </span>
+            )}
+          </div>
           <p className="text-xs sm:text-sm text-slate-500">
-            Real-time billing analytics, pending collections, and cash flow summary.
+            {isAdmin 
+              ? 'Real-time platform GMV, overall collection volume, tenant performance, and multi-user cash flow.' 
+              : 'Real-time billing analytics, pending collections, and cash flow summary.'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => openCreateInvoice()}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm shadow-indigo-200 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Invoice</span>
-          </button>
+          {isAdmin ? (
+            <>
+              <button
+                onClick={() => setCurrentView('admin_dashboard')}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-sm shadow-purple-200 transition-all active:scale-95"
+              >
+                <Users className="w-4 h-4" />
+                <span>User Onboarding & Tenants</span>
+              </button>
 
-          <button
-            onClick={() => setCurrentView('clients')}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 shadow-subtle transition-colors"
-          >
-            <UserPlus className="w-3.5 h-3.5 text-slate-500" />
-            <span>Add Client</span>
-          </button>
+              <button
+                onClick={() => setCurrentView('invoices')}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 shadow-subtle transition-colors"
+              >
+                <FileText className="w-3.5 h-3.5 text-slate-500" />
+                <span>All Platform Invoices</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => openCreateInvoice()}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm shadow-indigo-200 transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Invoice</span>
+              </button>
 
-          <button
-            onClick={() => openCreateQuote()}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 shadow-subtle transition-colors"
-          >
-            <FileCheck className="w-3.5 h-3.5 text-slate-500" />
-            <span>New Quote</span>
-          </button>
+              <button
+                onClick={() => setCurrentView('clients')}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 shadow-subtle transition-colors"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-slate-500" />
+                <span>Add Client</span>
+              </button>
 
-          <button
-            onClick={() => setCurrentView('templates')}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 shadow-subtle transition-colors"
-          >
-            <Palette className="w-3.5 h-3.5 text-slate-500" />
-            <span>Templates</span>
-          </button>
+              <button
+                onClick={() => openCreateQuote()}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 shadow-subtle transition-colors"
+              >
+                <FileCheck className="w-3.5 h-3.5 text-slate-500" />
+                <span>New Quote</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('templates')}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200 shadow-subtle transition-colors"
+              >
+                <Palette className="w-3.5 h-3.5 text-slate-500" />
+                <span>Templates</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -634,10 +678,15 @@ export const DashboardPage: React.FC = () => {
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
                         <button
                           onClick={() => openViewInvoice(inv.id)}
-                          className="hover:text-indigo-600 hover:underline"
+                          className="hover:text-indigo-600 hover:underline block"
                         >
                           {inv.number}
                         </button>
+                        {isAdmin && (
+                          <span className="text-[10px] font-sans font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 mt-1 inline-block">
+                            👤 {userMap.get(inv.userId || '')?.email || inv.userId}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">

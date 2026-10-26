@@ -14,6 +14,7 @@ import {
   Sparkles,
   Building2,
   ShieldCheck,
+  Crown,
   LogIn,
   X
 } from 'lucide-react';
@@ -39,28 +40,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
     openCreateInvoice, 
     invoices, 
     quotes, 
+    clients,
     settings, 
     currentUser, 
+    adminMetrics,
     setIsAuthModalOpen 
   } = useApp();
+
+  const isAdmin = currentUser?.role === 'admin';
 
   const unpaidInvoicesCount = invoices.filter(
     i => i.status === 'sent' || i.status === 'partially_paid' || i.status === 'overdue'
   ).length;
 
-  const navItems: { id: NavigationPage; label: string; icon: React.ElementType; badge?: number | string }[] = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'invoices', label: 'Invoices', icon: FileText, badge: unpaidInvoicesCount || undefined },
-    { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'quotes', label: 'Estimates / Quotes', icon: FileCheck, badge: quotes.filter(q => q.status === 'sent').length || undefined },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'reports', label: 'Reports', icon: BarChart3 },
-    { id: 'templates', label: 'Templates', icon: Palette },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    ...(currentUser?.role === 'admin' ? [
-      { id: 'admin_dashboard' as NavigationPage, label: 'Admin Console', icon: ShieldCheck, badge: 'Super Admin' }
-    ] : []),
-  ];
+  const navItems: { id: NavigationPage; label: string; icon: React.ElementType; badge?: number | string; badgeColor?: string }[] = isAdmin
+    ? [
+        { id: 'overview', label: 'Platform Overview', icon: LayoutDashboard },
+        { 
+          id: 'admin_dashboard' as NavigationPage, 
+          label: 'Users & Onboarding', 
+          icon: Users, 
+          badge: adminMetrics?.totalUsers || undefined,
+          badgeColor: 'bg-purple-100 text-purple-700'
+        },
+        { 
+          id: 'invoices', 
+          label: 'Platform Invoices', 
+          icon: FileText, 
+          badge: invoices.length || undefined,
+          badgeColor: 'bg-indigo-100 text-indigo-700'
+        },
+        { 
+          id: 'clients', 
+          label: 'Platform Clients', 
+          icon: Building2, 
+          badge: clients.length || undefined 
+        },
+        { id: 'payments', label: 'Global Payments', icon: CreditCard },
+        { id: 'reports', label: 'System Reports', icon: BarChart3 },
+        { id: 'settings', label: 'Cloud DB & Settings', icon: Settings },
+      ]
+    : [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'invoices', label: 'Invoices', icon: FileText, badge: unpaidInvoicesCount || undefined },
+        { id: 'clients', label: 'Clients', icon: Users },
+        { id: 'quotes', label: 'Estimates / Quotes', icon: FileCheck, badge: quotes.filter(q => q.status === 'sent').length || undefined },
+        { id: 'payments', label: 'Payments', icon: CreditCard },
+        { id: 'reports', label: 'Reports', icon: BarChart3 },
+        { id: 'templates', label: 'Templates', icon: Palette },
+        { id: 'settings', label: 'Profile & Settings', icon: Settings },
+      ];
 
   const handleNavClick = (id: NavigationPage) => {
     setCurrentView(id);
@@ -102,8 +131,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="font-black text-lg text-slate-900 tracking-tight leading-none">
                   JS <span className="text-indigo-600">Invoice</span>
                 </span>
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-1">
-                  Cloud Billing
+                <span className={`text-[10px] uppercase tracking-widest mt-1 flex items-center gap-1 ${
+                  isAdmin ? 'text-purple-600 font-bold' : 'text-slate-400 font-semibold'
+                }`}>
+                  {isAdmin ? (
+                    <>
+                      <Crown className="w-2.5 h-2.5 text-purple-600" />
+                      Super Admin
+                    </>
+                  ) : (
+                    'Cloud Billing'
+                  )}
                 </span>
               </div>
             )}
@@ -147,7 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className={`text-xs px-2 py-0.5 rounded-full font-bold font-mono ${
                       active
                         ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                        : item.badgeColor || 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                     } ${collapsed ? 'absolute top-1 right-2 w-2 h-2 p-0 text-[0px] rounded-full' : ''}`}
                   >
                     {item.badge}
@@ -163,21 +201,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {!collapsed ? (
             currentUser ? (
               <div 
-                onClick={() => setCurrentView('settings')}
+                onClick={() => setCurrentView(isAdmin ? 'admin_dashboard' : 'settings')}
                 className="flex items-center gap-3 p-2 rounded-xl bg-white border border-slate-200/80 shadow-subtle cursor-pointer hover:border-indigo-300 transition-colors"
-                title="Open Profile & Settings"
+                title={isAdmin ? "Super Admin Console" : "Open Profile & Settings"}
               >
-                <div className="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
-                  {currentUser.name.substring(0, 2).toUpperCase()}
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                  isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'
+                }`}>
+                  {isAdmin ? <Crown className="w-4 h-4" /> : currentUser.name.substring(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <p className="text-xs font-bold text-slate-900 truncate">
                       {currentUser.name}
                     </p>
+                    {isAdmin && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                        ADMIN
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-slate-500 truncate">
-                    Profile & Settings
+                    {isAdmin ? 'Super Admin Console' : 'Profile & Settings'}
                   </p>
                 </div>
               </div>

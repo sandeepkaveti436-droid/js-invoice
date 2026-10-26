@@ -13,6 +13,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { calculateInvoice } from '../utils/calculator';
 import { CURRENCIES, formatMoney } from '../utils/currency';
+import { StorageService } from '../services/storage';
 import { generateInvoiceNumber, getDateAfterDays, getTodayDateString } from '../utils/formatters';
 import { exportInvoiceToPdf, printInvoice } from '../utils/pdfExport';
 import { TemplateRenderer } from '../components/templates/TemplateRenderer';
@@ -83,7 +84,7 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
   // Initial Invoice Data Constructor
   const initialInvoice = useMemo<Invoice>(() => {
     if (isEditing && activeInvoiceId) {
-      const found = invoices.find(i => i.id === activeInvoiceId);
+      const found = invoices.find(i => i.id === activeInvoiceId) || StorageService.getInvoiceById(activeInvoiceId);
       if (found) return JSON.parse(JSON.stringify(found));
     }
 

@@ -16,9 +16,11 @@ import {
   Building,
   Mail,
   ShieldCheck,
+  Crown,
   Check
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { StorageService } from '../services/storage';
 import { formatMoney } from '../utils/currency';
 import { formatDate, getInvoiceStatusStyle } from '../utils/formatters';
 import { exportInvoiceToPdf, printInvoice } from '../utils/pdfExport';
@@ -28,6 +30,7 @@ import { SendInvoiceModal } from '../components/invoice/SendInvoiceModal';
 
 export const InvoiceDetailPage: React.FC = () => {
   const { 
+    currentUser,
     activeInvoiceId, 
     invoices, 
     payments, 
@@ -43,7 +46,8 @@ export const InvoiceDetailPage: React.FC = () => {
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const invoice = invoices.find(i => i.id === activeInvoiceId);
+  const isAdmin = currentUser?.role === 'admin';
+  const invoice = invoices.find(i => i.id === activeInvoiceId) || StorageService.getInvoiceById(activeInvoiceId || '');
 
   if (!invoice) {
     return (

@@ -20,10 +20,13 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   ChevronDown,
-  Check
+  Check,
+  Crown,
+  Users
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Invoice, InvoiceStatus } from '../types';
+import { Invoice, InvoiceStatus, User } from '../types';
+import { StorageService } from '../services/storage';
 import { formatMoney } from '../utils/currency';
 import { formatDate, getInvoiceStatusStyle } from '../utils/formatters';
 import { exportInvoiceToPdf, printInvoice } from '../utils/pdfExport';
@@ -32,6 +35,7 @@ import { SendInvoiceModal } from '../components/invoice/SendInvoiceModal';
 
 export const InvoicesListPage: React.FC = () => {
   const { 
+    currentUser,
     invoices, 
     openCreateInvoice, 
     openEditInvoice, 
@@ -42,7 +46,16 @@ export const InvoicesListPage: React.FC = () => {
     showToast 
   } = useApp();
 
+  const isAdmin = currentUser?.role === 'admin';
+  const allUsers = useMemo(() => StorageService.getUsers(), []);
+  const userMap = useMemo(() => {
+    const map = new Map<string, User>();
+    allUsers.forEach(u => map.set(u.id, u));
+    return map;
+  }, [allUsers]);
+
   const [searchTerm, setSearchTerm] = useState('');
+  const [tenantFilter, setTenantFilter] = useState<'all' | string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'half_paid' | InvoiceStatus>('all');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'number'>('date_desc');
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
@@ -99,11 +112,19 @@ export const InvoicesListPage: React.FC = () => {
   // Filtered & Sorted Invoices
   const filteredInvoices = useMemo(() => {
     let list = invoices.filter(inv => {
+      // Tenant filter (Admin)
+      if (isAdmin && tenantFilter !== 'all' && inv.userId !== tenantFilter) {
+        return false;
+      }
+
       // Search
+      const user = inv.userId ? userMap.get(inv.userId) : null;
       const matchesSearch = 
         inv.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.client?.companyName?.toLowerCase().includes(searchTerm.toLowerCase());
+        inv.client?.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (isAdmin && user?.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (isAdmin && user?.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
       // Status
       let matchesStatus = true;
@@ -135,7 +156,7 @@ export const InvoicesListPage: React.FC = () => {
     });
 
     return list;
-  }, [invoices, searchTerm, statusFilter, sortBy]);
+  }, [invoices, searchTerm, tenantFilter, statusFilter, sortBy, isAdmin, userMap]);
 
   // Pagination
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage) || 1;
@@ -220,11 +241,21 @@ export const InvoicesListPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Invoices Management
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              {isAdmin ? 'Platform Invoices' : 'Invoices Management'}
+            </h2>
+            {isAdmin && (
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 uppercase tracking-wider flex items-center gap-1">
+                <Crown className="w-3 h-3 text-purple-600" />
+                Super Admin
+              </span>
+            )}
+          </div>
           <p className="text-xs sm:text-sm text-slate-500">
-            Create, track, filter, record payments, and export commercial invoices.
+            {isAdmin 
+              ? 'View, edit, filter, and modify payment status for all tenant invoices across the platform.' 
+              : 'Create, track, filter, record payments, and export commercial invoices.'}
           </p>
         </div>
 
@@ -246,6 +277,42 @@ export const InvoicesListPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Super Admin Tenant Quick Filter Callout */}
+      {isAdmin && (
+        <div className="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-purple-950 block">Filter Invoices by User / Tenant</span>
+              <span className="text-[11px] text-purple-700">Filter the roster to inspect a single tenant's invoices or view all platform billing</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <select
+              value={tenantFilter}
+              onChange={e => {
+                setTenantFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-auto bg-white border border-purple-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            >
+              <option value="all">🌐 All Platform Tenants ({invoices.length} invoices)</option>
+              {allUsers.map(u => {
+                const count = invoices.filter(i => i.userId === u.id).length;
+                return (
+                  <option key={u.id} value={u.id}>
+                    👤 {u.name} ({u.email}) — {count} invoices
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Filter Tabs & Search Bar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-subtle space-y-4">
@@ -365,12 +432,19 @@ export const InvoicesListPage: React.FC = () => {
                       onChange={() => toggleSelectOne(inv.id)}
                       className="w-4 h-4 rounded text-indigo-600"
                     />
-                    <button
-                      onClick={() => openViewInvoice(inv.id)}
-                      className="font-mono font-bold text-sm text-slate-900 hover:text-indigo-600"
-                    >
-                      {inv.number}
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => openViewInvoice(inv.id)}
+                        className="font-mono font-bold text-sm text-slate-900 hover:text-indigo-600"
+                      >
+                        {inv.number}
+                      </button>
+                      {isAdmin && (
+                        <span className="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 truncate max-w-[150px]">
+                          👤 {userMap.get(inv.userId || '')?.email || inv.userId}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="relative inline-block text-left">
@@ -559,10 +633,15 @@ export const InvoicesListPage: React.FC = () => {
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
                         <button
                           onClick={() => openViewInvoice(inv.id)}
-                          className="hover:text-indigo-600 hover:underline"
+                          className="hover:text-indigo-600 hover:underline block"
                         >
                           {inv.number}
                         </button>
+                        {isAdmin && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded mt-1 border border-purple-200">
+                            👤 {userMap.get(inv.userId || '')?.email || inv.userId}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">
