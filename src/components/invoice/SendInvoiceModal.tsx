@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Invoice } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { formatMoney } from '../../utils/currency';
@@ -32,22 +33,40 @@ export const SendInvoiceModal: React.FC<Props> = ({ invoice, isOpen, onClose }) 
     ? `${window.location.origin}/?view=public_invoice&id=${invoice.id}`
     : '';
 
-  const defaultBody = invoice
-    ? `Hi ${invoice.client?.name || 'there'},\n\nPlease find your invoice ${invoice.number} from ${invoice.business?.name || 'our team'} for ${formatMoney(invoice.grandTotal, invoice.currency)}.\nPayment is due by ${formatDate(invoice.dueDate)}.\n\nYou can review, pay, and download your full invoice online here:\n${publicInvoiceUrl}\n\nThank you for your business!\n\nBest regards,\n${invoice.business?.name || 'Billing Team'}`
-    : '';
-
-  const [toEmail, setToEmail] = useState(invoice?.client?.email || '');
+  const [toEmail, setToEmail] = useState('');
   const [ccEmail, setCcEmail] = useState('');
-  const [subject, setSubject] = useState(
-    invoice 
-      ? `Invoice ${invoice.number} from ${invoice.business?.name || 'JS Invoice'}` 
-      : ''
-  );
-  const [bodyMessage, setBodyMessage] = useState(defaultBody);
+  const [subject, setSubject] = useState('');
+  const [bodyMessage, setBodyMessage] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isSendingApi, setIsSendingApi] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
+
+  // Synchronize state whenever modal is opened or invoice changes
+  useEffect(() => {
+    if (isOpen && invoice) {
+      setToEmail(invoice.client?.email || '');
+      setCcEmail('');
+      setSubject(`Invoice ${invoice.number} from ${invoice.business?.name || 'JS Invoice'}`);
+      setBodyMessage(
+        `Hi ${invoice.client?.name || invoice.client?.companyName || 'there'},\n\nPlease find your invoice ${invoice.number} from ${invoice.business?.name || 'our team'} for ${formatMoney(invoice.grandTotal, invoice.currency)}.\nPayment is due by ${formatDate(invoice.dueDate)}.\n\nYou can review, pay, and download your full invoice online here:\n${window.location.origin}/?view=public_invoice&id=${invoice.id}\n\nThank you for your business!\n\nBest regards,\n${invoice.business?.name || 'Billing Team'}`
+      );
+      setSentSuccess(false);
+      setCopiedLink(false);
+    }
+  }, [isOpen, invoice]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   if (!isOpen || !invoice) return null;
 
@@ -121,7 +140,7 @@ export const SendInvoiceModal: React.FC<Props> = ({ invoice, isOpen, onClose }) 
     try {
       const success = await exportInvoiceToPdf('invoice-document', `${invoice.number}.pdf`);
       if (success) {
-        showToast(`Downloaded ${invoice.number}.pdf! You can attach it to your email.`, 'success');
+        showToast(`Downloaded ${invoice.number}.pdf! Ready to attach to your email.`, 'success');
       } else {
         showToast('Could not download PDF. Please try again.', 'error');
       }
@@ -132,7 +151,7 @@ export const SendInvoiceModal: React.FC<Props> = ({ invoice, isOpen, onClose }) 
     }
   };
 
-  // Channel 5: Optional Direct API Dispatch if Resend API key is provided
+  // Channel 5: Optional Direct API Dispatch if Resend API key is configured
   const handleSendViaApi = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!toEmail.trim()) {
@@ -142,7 +161,6 @@ export const SendInvoiceModal: React.FC<Props> = ({ invoice, isOpen, onClose }) 
 
     const apiKey = settings.emailConfig?.apiKey;
     if (!apiKey) {
-      // Default to opening Gmail or default client directly
       handleSendViaGmail();
       return;
     }
@@ -183,10 +201,15 @@ export const SendInvoiceModal: React.FC<Props> = ({ invoice, isOpen, onClose }) 
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 my-6">
-        
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 my-auto relative z-10"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Top Header */}
         <div className="flex justify-between items-center pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -199,6 +222,7 @@ export const SendInvoiceModal: React.FC<Props> = ({ invoice, isOpen, onClose }) 
             </div>
           </div>
           <button 
+            type="button"
             onClick={onClose} 
             className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
@@ -363,6 +387,7 @@ export const SendInvoiceModal: React.FC<Props> = ({ invoice, isOpen, onClose }) 
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

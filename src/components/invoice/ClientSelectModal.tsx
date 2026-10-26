@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Client } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Plus, X, Search, Check, Building, Mail, Phone } from 'lucide-react';
@@ -63,9 +64,17 @@ export const ClientSelectModal: React.FC<Props> = ({ isOpen, onClose, onSelectCl
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-preview border border-slate-200 max-h-[90vh] flex flex-col">
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col my-auto relative z-10"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex justify-between items-center pb-4 border-b border-slate-100">
           <div>
@@ -292,6 +301,7 @@ export const ClientSelectModal: React.FC<Props> = ({ isOpen, onClose, onSelectCl
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

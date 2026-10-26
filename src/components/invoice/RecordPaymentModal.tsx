@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Invoice } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { formatMoney } from '../../utils/currency';
@@ -74,9 +75,17 @@ export const RecordPaymentModal: React.FC<Props> = ({ invoice, isOpen, onClose, 
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-preview border border-slate-200">
+  if (!isOpen || !invoice) return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 my-auto relative z-10"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -217,6 +226,7 @@ export const RecordPaymentModal: React.FC<Props> = ({ invoice, isOpen, onClose, 
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

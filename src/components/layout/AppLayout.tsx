@@ -12,7 +12,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-[#F8FAFC] animate-workspace-enter">
+    <div className="min-h-screen flex bg-[#F8FAFC]">
       {/* Sidebar */}
       <Sidebar 
         collapsed={collapsed}
