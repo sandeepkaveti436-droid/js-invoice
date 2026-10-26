@@ -148,7 +148,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
 
   return (
     <>
-      <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30">
+      <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 animate-nav-slide">
         {/* Left: Mobile Toggle & Page Title */}
         <div className="flex items-center gap-3">
           <button

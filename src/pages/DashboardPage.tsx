@@ -168,10 +168,10 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 Summary Metric Cards */}
+      {/* 4 Summary Metric Cards with Staggered Entrance Animation */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Invoiced */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-subtle">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-subtle animate-card-1">
           <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-medium uppercase tracking-wider">Total Invoices</span>
             <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
@@ -190,7 +190,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Paid Invoices */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-subtle">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-subtle animate-card-2">
           <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-medium uppercase tracking-wider">Paid Invoices</span>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -209,7 +209,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Outstanding Amount */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-subtle">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-subtle animate-card-3">
           <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-medium uppercase tracking-wider">Outstanding</span>
             <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
@@ -226,7 +226,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Overdue Amount */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-subtle">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-subtle animate-card-4">
           <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-medium uppercase tracking-wider">Overdue</span>
             <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">

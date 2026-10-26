@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
 import { 
   User as UserIcon, 
@@ -70,6 +71,8 @@ export const AuthPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
+  const [isSuccessTransition, setIsSuccessTransition] = useState(false);
+  const [transitionUser, setTransitionUser] = useState({ name: '', title: '' });
 
   // Carousel slide index
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -81,6 +84,17 @@ export const AuthPage: React.FC = () => {
     }, 6000);
     return () => clearInterval(timer);
   }, []);
+
+  const triggerConfetti = () => {
+    try {
+      confetti({
+        particleCount: 85,
+        spread: 80,
+        origin: { y: 0.55 },
+        colors: ['#F59E0B', '#4F46E5', '#10B981', '#F43F5E', '#3B82F6']
+      });
+    } catch {}
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,17 +108,57 @@ export const AuthPage: React.FC = () => {
           setIsLoading(false);
           return;
         }
-        await login(email, password);
-        showToast('Welcome back to JS Invoice!', 'success');
+
+        setIsSuccessTransition(true);
+        setTransitionUser({
+          name: email.split('@')[0],
+          title: 'Logging In...'
+        });
+
+        setTimeout(async () => {
+          try {
+            await login(email, password);
+            showToast('Welcome back to JS Invoice!', 'success');
+          } catch (err: any) {
+            setIsSuccessTransition(false);
+            setErrorMessage(err?.message || 'Authentication error. Please check your details.');
+          } finally {
+            setIsLoading(false);
+          }
+        }, 700);
+        return;
+
       } else if (mode === 'signup') {
         if (!fullName.trim() || !email.trim() || !password.trim()) {
           setErrorMessage('Please provide your full name, email address, and password.');
           setIsLoading(false);
           return;
         }
+
+        // Trigger celebratory animation
+        setIsSuccessTransition(true);
+        setTransitionUser({
+          name: fullName.trim(),
+          title: 'Account Created Successfully!'
+        });
+        triggerConfetti();
+
         const fullPhoneNumber = phone.trim() ? `${selectedCountry.code} ${phone.trim()}` : '';
-        await signup(fullName, email, password, `${fullName}'s Workspace`, fullPhoneNumber);
-        showToast('Account created successfully! Welcome to JS Invoice.', 'success');
+        
+        // Wait 1.1s for user to enjoy animation before mounting main dashboard
+        setTimeout(async () => {
+          try {
+            await signup(fullName, email, password, `${fullName}'s Workspace`, fullPhoneNumber);
+            showToast(`Welcome to JS Invoice, ${fullName.trim()}!`, 'success');
+          } catch (err: any) {
+            setIsSuccessTransition(false);
+            setErrorMessage(err?.message || 'Failed to create account.');
+          } finally {
+            setIsLoading(false);
+          }
+        }, 1100);
+        return;
+
       } else if (mode === 'forgot') {
         if (!email.trim()) {
           setErrorMessage('Please enter your registered email address.');
@@ -114,10 +168,10 @@ export const AuthPage: React.FC = () => {
         // Simulated password reset
         setResetSent(true);
         showToast('Password reset link sent to ' + email, 'info');
+        setIsLoading(false);
       }
     } catch (err: any) {
       setErrorMessage(err?.message || 'Authentication error. Please check your details.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -125,38 +179,67 @@ export const AuthPage: React.FC = () => {
   const handleGoogleAuth = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    try {
-      await loginWithGoogle();
-      showToast('Signed in with Google successfully!', 'success');
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Google authentication failed.');
-    } finally {
-      setIsLoading(false);
-    }
+    setIsSuccessTransition(true);
+    setTransitionUser({
+      name: 'Google User',
+      title: 'Google Sign-In Successful!'
+    });
+    triggerConfetti();
+
+    setTimeout(async () => {
+      try {
+        await loginWithGoogle();
+        showToast('Signed in with Google successfully!', 'success');
+      } catch (err: any) {
+        setIsSuccessTransition(false);
+        setErrorMessage(err?.message || 'Google authentication failed.');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 900);
   };
 
   const handle1ClickUser = async () => {
     setIsLoading(true);
-    try {
-      await signup('Alex Rivera', 'alex@nexuscraft.design', 'demo123', 'Nexus Craft Studio', '+91 9876543210');
-      showToast('Logged in as Demo User!', 'success');
-    } catch {
-      await login('alex@nexuscraft.design', 'demo123');
-    } finally {
-      setIsLoading(false);
-    }
+    setIsSuccessTransition(true);
+    setTransitionUser({
+      name: 'Alex Rivera',
+      title: 'Demo Workspace Ready!'
+    });
+    triggerConfetti();
+
+    setTimeout(async () => {
+      try {
+        await signup('Alex Rivera', 'alex@nexuscraft.design', 'demo123', 'Nexus Craft Studio', '+91 9876543210');
+        showToast('Logged in as Demo User!', 'success');
+      } catch {
+        await login('alex@nexuscraft.design', 'demo123');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 900);
   };
 
   const handle1ClickAdmin = async () => {
     setIsLoading(true);
-    try {
-      await login('admin@jsinvoice.com', 'admin123');
-      showToast('Logged in as Master Administrator!', 'success');
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Admin sign in failed');
-    } finally {
-      setIsLoading(false);
-    }
+    setIsSuccessTransition(true);
+    setTransitionUser({
+      name: 'Master Admin',
+      title: 'Admin Console Access'
+    });
+    triggerConfetti();
+
+    setTimeout(async () => {
+      try {
+        await login('admin@jsinvoice.com', 'admin123');
+        showToast('Logged in as Master Administrator!', 'success');
+      } catch (err: any) {
+        setIsSuccessTransition(false);
+        setErrorMessage(err?.message || 'Admin sign in failed');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 900);
   };
 
   const activeSlideData = CAROUSEL_SLIDES[currentSlide];
@@ -258,16 +341,54 @@ export const AuthPage: React.FC = () => {
         {/* ======================================================== */}
         <div className="w-full max-w-md mx-auto py-3 sm:py-6 px-1 sm:px-3 flex flex-col justify-center">
           
-          {/* Top Circle Avatar (matching the reference image icon) */}
-          <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-600 mx-auto mb-4 shadow-sm">
-            {mode === 'signup' ? (
-              <UserPlus className="w-6 h-6 text-slate-600" />
-            ) : mode === 'forgot' ? (
-              <KeyRound className="w-6 h-6 text-slate-600" />
-            ) : (
-              <UserIcon className="w-6 h-6 text-slate-600" />
-            )}
-          </div>
+          {isSuccessTransition ? (
+            /* ======================================================== */
+            /* CELEBRATION & WORKSPACE LAUNCH ANIMATION                 */
+            /* ======================================================== */
+            <div className="w-full py-8 px-4 flex flex-col items-center justify-center text-center animate-workspace-enter">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border-2 border-amber-500/40 flex items-center justify-center text-amber-500 shadow-xl shadow-amber-500/20 animate-checkmark-pop">
+                  <Sparkles className="w-10 h-10 text-amber-500 animate-pulse" />
+                </div>
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg animate-checkmark-pop">
+                  <Check className="w-5 h-5 stroke-[3]" />
+                </div>
+              </div>
+
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 mb-2">
+                {transitionUser.title}
+              </span>
+
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+                Welcome, {transitionUser.name}!
+              </h2>
+
+              <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-xs leading-relaxed">
+                Setting up your personal invoice dashboard, GST compliance rules, and client ledger...
+              </p>
+
+              {/* Animated Progress Bar */}
+              <div className="w-64 h-2.5 bg-slate-100 rounded-full mt-6 overflow-hidden border border-slate-200">
+                <div className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 rounded-full w-full animate-pulse transition-all duration-1000" />
+              </div>
+
+              <div className="flex items-center gap-2 mt-4 text-xs font-medium text-slate-400">
+                <div className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                <span>Launching main workspace with animation...</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Top Circle Avatar (matching the reference image icon) */}
+              <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-600 mx-auto mb-4 shadow-sm">
+                {mode === 'signup' ? (
+                  <UserPlus className="w-6 h-6 text-slate-600" />
+                ) : mode === 'forgot' ? (
+                  <KeyRound className="w-6 h-6 text-slate-600" />
+                ) : (
+                  <UserIcon className="w-6 h-6 text-slate-600" />
+                )}
+              </div>
 
           {/* Form Header Titles */}
           <div className="text-center mb-6">
@@ -558,6 +679,8 @@ export const AuthPage: React.FC = () => {
               </button>
             </div>
           </div>
+        </>
+      )}
 
         </div>
 
