@@ -41,7 +41,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
     globalSearch, 
     setGlobalSearch, 
     currentUser, 
-    isAdmin, 
     logout, 
     setIsAuthModalOpen,
     clearMyData 
@@ -137,8 +136,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
         return { title: 'Invoice Template Gallery', breadcrumb: 'Templates' };
       case 'settings':
         return { title: 'Business Settings', breadcrumb: 'Settings' };
-      case 'admin':
-        return { title: 'Admin Master Control Panel', breadcrumb: 'Admin / Users & Platform' };
       default:
         return { title: 'JS Invoice', breadcrumb: 'Home' };
     }
@@ -414,31 +411,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-dropdown border border-slate-200 p-2 z-50 text-xs divide-y divide-slate-100">
                   <div className="px-3 py-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold text-slate-900">{currentUser.name}</p>
-                      {currentUser.role === 'admin' && (
-                        <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded">
-                          Admin
-                        </span>
-                      )}
-                    </div>
+                    <p className="font-bold text-slate-900">{currentUser.name}</p>
                     <p className="text-[11px] text-slate-400 truncate">{currentUser.email}</p>
                   </div>
 
                   <div className="py-1">
-                    {isAdmin && (
-                      <button
-                        onClick={() => {
-                          setCurrentView('admin');
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full text-left px-3 py-1.5 rounded-lg text-amber-800 hover:bg-amber-50 font-bold flex items-center gap-1.5"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Admin Dashboard</span>
-                      </button>
-                    )}
-
                     <button
                       onClick={() => {
                         setCurrentView('settings');
@@ -520,15 +497,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                 </p>
               </div>
 
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-                <h4 className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  Admin Control Panel
-                </h4>
-                <p>
-                  Administrators can access the <strong>Admin Panel</strong> from the sidebar to track platform-wide user registrations, active businesses, and gross invoiced volume.
-                </p>
-              </div>
             </div>
 
             <div className="mt-6 flex justify-end">

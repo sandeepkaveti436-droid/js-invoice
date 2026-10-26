@@ -14,13 +14,12 @@ import { PaymentsPage } from './pages/PaymentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { PublicInvoiceView } from './pages/PublicInvoiceView';
 import { AuthPage } from './pages/AuthPage';
 import { AuthModal } from './components/auth/AuthModal';
 
 const MainViewRouter: React.FC = () => {
-  const { currentView, isAdmin } = useApp();
+  const { currentView } = useApp();
 
   switch (currentView) {
     case 'overview':
@@ -53,8 +52,6 @@ const MainViewRouter: React.FC = () => {
       return <TemplatesPage />;
     case 'settings':
       return <SettingsPage />;
-    case 'admin':
-      return <AdminDashboardPage />;
     default:
       return <DashboardPage />;
   }

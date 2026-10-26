@@ -42,7 +42,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     quotes, 
     settings, 
     currentUser, 
-    isAdmin, 
     setIsAuthModalOpen 
   } = useApp();
 
@@ -50,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     i => i.status === 'sent' || i.status === 'partially_paid' || i.status === 'overdue'
   ).length;
 
-  const navItems: { id: NavigationPage; label: string; icon: React.ElementType; badge?: number | string; adminOnly?: boolean }[] = [
+  const navItems: { id: NavigationPage; label: string; icon: React.ElementType; badge?: number | string }[] = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'invoices', label: 'Invoices', icon: FileText, badge: unpaidInvoicesCount || undefined },
     { id: 'clients', label: 'Clients', icon: Users },
@@ -61,10 +60,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'templates', label: 'Templates', icon: Palette },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
-
-  if (isAdmin) {
-    navItems.push({ id: 'admin', label: 'Admin Panel', icon: ShieldCheck, badge: 'Pro' });
-  }
 
   const handleNavClick = (id: NavigationPage) => {
     setCurrentView(id);
@@ -151,13 +146,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-colors text-left group relative ${
                   active
                     ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
-                    : item.id === 'admin'
-                    ? 'text-amber-700 hover:bg-amber-50/60 font-semibold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 } ${collapsed ? 'justify-center px-0' : ''}`}
                 title={collapsed ? item.label : undefined}
               >
-                <Icon className={`w-5 h-5 shrink-0 ${active ? 'text-indigo-600' : item.id === 'admin' ? 'text-amber-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                <Icon className={`w-5 h-5 shrink-0 ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
 
                 {!collapsed && (
                   <span className="flex-1 truncate">
@@ -168,9 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {item.badge !== undefined && (
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full font-bold font-mono ${
-                      item.id === 'admin'
-                        ? 'bg-amber-100 text-amber-800'
-                        : active
+                      active
                         ? 'bg-indigo-600 text-white'
                         : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                     } ${collapsed ? 'absolute top-1 right-2 w-2 h-2 p-0 text-[0px] rounded-full' : ''}`}
@@ -196,11 +187,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <p className="text-xs font-bold text-slate-900 truncate">
                       {currentUser.name}
                     </p>
-                    {currentUser.role === 'admin' && (
-                      <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.2 rounded">
-                        Admin
-                      </span>
-                    )}
                   </div>
                   <p className="text-[11px] text-slate-500 truncate">
                     {currentUser.companyName || currentUser.email}

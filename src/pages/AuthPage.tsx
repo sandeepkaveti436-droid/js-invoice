@@ -220,28 +220,6 @@ export const AuthPage: React.FC = () => {
     }, 900);
   };
 
-  const handle1ClickAdmin = async () => {
-    setIsLoading(true);
-    setIsSuccessTransition(true);
-    setTransitionUser({
-      name: 'Master Admin',
-      title: 'Admin Console Access'
-    });
-    triggerConfetti();
-
-    setTimeout(async () => {
-      try {
-        await login('admin@jsinvoice.com', 'admin123');
-        showToast('Logged in as Master Administrator!', 'success');
-      } catch (err: any) {
-        setIsSuccessTransition(false);
-        setErrorMessage(err?.message || 'Admin sign in failed');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 900);
-  };
-
   const activeSlideData = CAROUSEL_SLIDES[currentSlide];
 
   return (
@@ -661,21 +639,14 @@ export const AuthPage: React.FC = () => {
               <span>Continue with Google</span>
             </button>
 
-            {/* Quick 1-Click Test Chips */}
-            <div className="flex items-center gap-2 pt-1">
+            {/* Quick 1-Click Demo Shortcut */}
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handle1ClickUser}
-                className="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors text-center"
+                className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors text-center flex items-center justify-center gap-1.5"
               >
-                ⚡ 1-Click User
-              </button>
-              <button
-                type="button"
-                onClick={handle1ClickAdmin}
-                className="flex-1 py-1.5 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-medium transition-colors text-center border border-indigo-100"
-              >
-                🛡️ 1-Click Admin
+                <span>⚡ Instant Demo Workspace</span>
               </button>
             </div>
           </div>

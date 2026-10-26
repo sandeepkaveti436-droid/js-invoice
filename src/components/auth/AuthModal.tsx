@@ -94,19 +94,6 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
     }
   };
 
-  const handleQuickAdmin = async () => {
-    setIsLoading(true);
-    try {
-      await login('admin@jsinvoice.com', 'admin123');
-      showToast('Logged in as JS Invoice Administrator! Admin Panel unlocked.', 'success');
-      if (onClose) onClose();
-    } catch (err: any) {
-      setError(err?.message || 'Admin login failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative overflow-hidden">
@@ -139,24 +126,15 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
           </p>
         </div>
 
-        {/* 1-Click Fast Access Buttons */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        {/* 1-Click Fast Access Demo Button */}
+        <div className="mb-4">
           <button
             type="button"
             onClick={handleQuickDemoUser}
-            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200/80 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200/80 transition-colors"
           >
             <UserCheck className="w-3.5 h-3.5" />
-            <span>1-Click User Login</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleQuickAdmin}
-            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-200 transition-colors"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-            <span>1-Click Admin Panel</span>
+            <span>1-Click Demo Login</span>
           </button>
         </div>
 
