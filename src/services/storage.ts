@@ -188,12 +188,13 @@ export const StorageService = {
     writeStorage(STORAGE_KEYS.CURRENT_USER, user);
   },
 
-  registerUser(payload: { name: string; email: string; companyName?: string; provider?: 'email' | 'google' }): User {
+  registerUser(payload: { name: string; email: string; phone?: string; companyName?: string; provider?: 'email' | 'google' }): User {
     const users = this.getUsers();
     const existing = users.find(u => u.email.toLowerCase() === payload.email.toLowerCase());
     if (existing) {
       // Return existing or update last login
       existing.lastLoginAt = new Date().toISOString();
+      if (payload.phone && !existing.phone) existing.phone = payload.phone;
       writeStorage(STORAGE_KEYS.USERS, users);
       this.setCurrentUser(existing);
       return existing;
@@ -203,6 +204,7 @@ export const StorageService = {
       id: 'user_' + Date.now(),
       name: payload.name.trim(),
       email: payload.email.trim().toLowerCase(),
+      phone: payload.phone?.trim() || '',
       companyName: payload.companyName?.trim() || `${payload.name}'s Studio`,
       provider: payload.provider || 'email',
       role: 'user',

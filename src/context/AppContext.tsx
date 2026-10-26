@@ -25,7 +25,7 @@ interface AppContextType {
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
   login: (email: string, pass?: string) => Promise<User>;
-  signup: (name: string, email: string, pass?: string, companyName?: string) => Promise<User>;
+  signup: (name: string, email: string, pass?: string, companyName?: string, phone?: string) => Promise<User>;
   loginWithGoogle: () => Promise<User>;
   logout: () => void;
   switchUserAccount: (userId: string) => void;
@@ -141,10 +141,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return user;
   };
 
-  const signup = async (name: string, email: string, pass?: string, companyName?: string): Promise<User> => {
+  const signup = async (name: string, email: string, pass?: string, companyName?: string, phone?: string): Promise<User> => {
     const user = StorageService.registerUser({
       name,
       email,
+      phone,
       companyName,
       provider: 'email',
     });

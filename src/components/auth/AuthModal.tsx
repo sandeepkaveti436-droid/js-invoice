@@ -10,7 +10,9 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   AlertCircle,
-  X 
+  X,
+  UserCheck,
+  Eye
 } from 'lucide-react';
 
 interface Props {
@@ -78,11 +80,25 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
     }
   };
 
+  const handleQuickDemoUser = async () => {
+    setIsLoading(true);
+    try {
+      await signup('Alex Rivera', 'alex@nexuscraft.design', 'demo123', 'Nexus Craft Studio');
+      showToast('Logged in as Demo User!', 'success');
+      if (onClose) onClose();
+    } catch {
+      await login('alex@nexuscraft.design', 'demo123');
+      if (onClose) onClose();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleQuickAdmin = async () => {
     setIsLoading(true);
     try {
       await login('admin@jsinvoice.com', 'admin123');
-      showToast('Logged in as JS Invoice Administrator!', 'success');
+      showToast('Logged in as JS Invoice Administrator! Admin Panel unlocked.', 'success');
       if (onClose) onClose();
     } catch (err: any) {
       setError(err?.message || 'Admin login failed');
@@ -94,20 +110,21 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
   return (
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative overflow-hidden">
-        {/* Brand Accent Top Glow */}
+        {/* Brand Top Stripe */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-indigo-600 via-indigo-500 to-amber-400" />
 
-        {canClose && onClose && (
+        {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="absolute top-5 right-5 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            title="Close dialog"
           >
             <X className="w-5 h-5" />
           </button>
         )}
 
-        {/* Brand Logo Header */}
-        <div className="text-center mb-6 pt-2">
+        {/* Brand Header */}
+        <div className="text-center mb-5 pt-2">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200 mx-auto mb-3">
             <span className="font-black text-xl tracking-tighter">JS</span>
           </div>
@@ -117,40 +134,29 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             {mode === 'signin'
-              ? 'Sign in to access your personal invoice dashboard'
+              ? 'Sign in to access your personal invoice workspace'
               : 'Create an account to start generating commercial invoices'}
           </p>
         </div>
 
-        {/* Mode Selector Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-2xl mb-5 text-xs font-semibold">
+        {/* 1-Click Fast Access Buttons */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
           <button
             type="button"
-            onClick={() => {
-              setMode('signin');
-              setError(null);
-            }}
-            className={`flex-1 py-2 rounded-xl transition-all ${
-              mode === 'signin'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            onClick={handleQuickDemoUser}
+            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200/80 transition-colors"
           >
-            Sign In
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>1-Click User Login</span>
           </button>
+
           <button
             type="button"
-            onClick={() => {
-              setMode('signup');
-              setError(null);
-            }}
-            className={`flex-1 py-2 rounded-xl transition-all ${
-              mode === 'signup'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            onClick={handleQuickAdmin}
+            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-200 transition-colors"
           >
-            Create Account
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+            <span>1-Click Admin Panel</span>
           </button>
         </div>
 
@@ -159,7 +165,7 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
           type="button"
           onClick={handleGoogleLogin}
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-all shadow-subtle active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-all shadow-subtle active:scale-[0.98] mb-4"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
@@ -182,14 +188,36 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
           <span>Continue with Google</span>
         </button>
 
-        {/* Divider */}
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center text-[10px] uppercase font-bold text-slate-400">
-            <span className="bg-white px-2">Or continue with email</span>
-          </div>
+        {/* Mode Selector Tabs */}
+        <div className="flex bg-slate-100 p-1 rounded-2xl mb-4 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => {
+              setMode('signin');
+              setError(null);
+            }}
+            className={`flex-1 py-1.5 rounded-xl transition-all ${
+              mode === 'signin'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            Sign In with Email
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('signup');
+              setError(null);
+            }}
+            className={`flex-1 py-1.5 rounded-xl transition-all ${
+              mode === 'signup'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            New Account (Sign Up)
+          </button>
         </div>
 
         {error && (
@@ -200,7 +228,7 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
         )}
 
         {/* Email/Password Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           {mode === 'signup' && (
             <>
               <div>
@@ -214,21 +242,21 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
                     required
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    placeholder="e.g. John Smith"
+                    placeholder="e.g. John Doe"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Company / Studio Name</label>
+                <label className="block font-semibold text-slate-700 mb-1">Company / Business Name</label>
                 <div className="relative">
                   <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={companyName}
                     onChange={e => setCompanyName(e.target.value)}
-                    placeholder="e.g. Acme Creative Agency"
+                    placeholder="e.g. Creative Studio LLC"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                 </div>
@@ -275,23 +303,22 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
             disabled={isLoading}
             className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
           >
-            <span>{isLoading ? 'Authenticating...' : mode === 'signin' ? 'Sign In to Account' : 'Create Free Account'}</span>
+            <span>{isLoading ? 'Processing...' : mode === 'signin' ? 'Sign In to Workspace' : 'Create Free Account'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>
 
-        {/* Quick Demo Access Bar */}
-        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-          <span>Testing & Evaluation:</span>
-          <button
-            type="button"
-            onClick={handleQuickAdmin}
-            className="font-bold text-indigo-600 hover:underline flex items-center gap-1"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Login as Admin</span>
-          </button>
-        </div>
+        {onClose && (
+          <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-xs text-slate-400 hover:text-slate-600 font-medium"
+            >
+              Continue and explore workspace as guest
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

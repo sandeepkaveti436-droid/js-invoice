@@ -16,6 +16,7 @@ import { TemplatesPage } from './pages/TemplatesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { PublicInvoiceView } from './pages/PublicInvoiceView';
+import { AuthPage } from './pages/AuthPage';
 import { AuthModal } from './components/auth/AuthModal';
 
 const MainViewRouter: React.FC = () => {
@@ -82,16 +83,24 @@ export const AppContent: React.FC = () => {
     );
   }
 
+  // Full-page authentication screen when not logged in
+  if (!currentUser) {
+    return <AuthPage />;
+  }
+
+  // Main application workspace (rendered only when user is logged in)
   return (
     <AppLayout>
       <MainViewRouter />
 
-      {/* Authentication Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen || !currentUser}
-        canClose={Boolean(currentUser)}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
+      {/* Switch Account / Secondary Auth Modal */}
+      {isAuthModalOpen && (
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          canClose={true}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+      )}
     </AppLayout>
   );
 };
