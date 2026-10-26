@@ -142,16 +142,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // 2. Seamless cloud sync from Supabase if connected
     if (isSupabaseConfigured()) {
       try {
+        // Keep cloud platform users in sync with all known accounts
+        const allUsers = StorageService.getUsers();
+        SupabaseSync.syncPlatformUsers(allUsers).catch(() => {});
+
         const cloudInvoices = await SupabaseSync.fetchInvoices(user.id);
         if (cloudInvoices && cloudInvoices.length > 0) {
           cloudInvoices.forEach(inv => StorageService.saveInvoice(inv, user.id));
           setInvoices(StorageService.getInvoices(user.id));
+        } else {
+          // If cloud has no invoices yet, push local ones to Supabase
+          const localInvoices = StorageService.getInvoices(user.id);
+          if (localInvoices.length > 0) {
+            localInvoices.forEach(inv => SupabaseSync.upsertInvoice(inv).catch(() => {}));
+          }
         }
 
         const cloudClients = await SupabaseSync.fetchClients(user.id);
         if (cloudClients && cloudClients.length > 0) {
           cloudClients.forEach(c => StorageService.saveClient(c, user.id));
           setClients(StorageService.getClients(user.id));
+        } else {
+          // If cloud has no clients yet, push local ones to Supabase
+          const localClients = StorageService.getClients(user.id);
+          if (localClients.length > 0) {
+            localClients.forEach(c => SupabaseSync.upsertClient(c).catch(() => {}));
+          }
         }
 
         const cloudPayments = await SupabaseSync.fetchPayments(user.id);
@@ -183,33 +199,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Auth Functions
   const login = async (email: string, pass?: string): Promise<User> => {
-    try {
-      const user = StorageService.loginUser(email, pass);
-      setCurrentUser(user);
-      if (user.role === 'admin') {
-        setCurrentView('admin_dashboard');
-      }
-      return user;
-    } catch (err: any) {
-      // If user not found in local cache, pull latest user directory from Supabase
-      if (isSupabaseConfigured()) {
-        try {
-          const cloudUsers = await SupabaseSync.fetchPlatformUsers();
-          if (cloudUsers && cloudUsers.length > 0) {
-            StorageService.mergeCloudUsers(cloudUsers);
-            const user = StorageService.loginUser(email, pass);
-            setCurrentUser(user);
-            if (user.role === 'admin') {
-              setCurrentView('admin_dashboard');
-            }
-            return user;
-          }
-        } catch {
-          // Re-throw original error
+    // 1. Pull latest cloud users first if Supabase is connected
+    if (isSupabaseConfigured()) {
+      try {
+        const cloudUsers = await SupabaseSync.fetchPlatformUsers();
+        if (cloudUsers && cloudUsers.length > 0) {
+          StorageService.mergeCloudUsers(cloudUsers);
         }
+      } catch (e) {
+        // continue
       }
-      throw err;
     }
+
+    // 2. Perform login (with automatic cross-device provisioning)
+    const user = StorageService.loginUser(email, pass);
+    setCurrentUser(user);
+    if (user.role === 'admin') {
+      setCurrentView('admin_dashboard');
+    }
+    return user;
   };
 
   const signup = async (name: string, email: string, pass?: string, companyName?: string, phone?: string): Promise<{ user: User; verificationToken: string; verificationUrl: string }> => {

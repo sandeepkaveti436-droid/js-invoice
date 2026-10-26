@@ -252,10 +252,6 @@ export const StorageService = {
 
   mergeCloudUsers(cloudUsers: User[]): User[] {
     this.init();
-    if (!cloudUsers || !Array.isArray(cloudUsers) || cloudUsers.length === 0) {
-      return this.getUsers();
-    }
-
     const localUsers = this.getUsers();
     const map = new Map<string, User>();
 
@@ -270,28 +266,39 @@ export const StorageService = {
     }
 
     // 3. Merge cloud users (add any not present, update verification/status)
-    for (const cu of cloudUsers) {
-      if (cu.email) {
-        const key = cu.email.toLowerCase();
-        if (key === 'admin@jsinvoice.com' || key === 'admin') {
-          continue; // keep root admin safe
-        }
-        const existing = map.get(key);
-        if (existing) {
-          map.set(key, {
-            ...existing,
-            ...cu,
-            isVerified: true,
-            status: cu.status || existing.status || 'active',
-          });
-        } else {
-          map.set(key, { ...cu, isVerified: true, status: cu.status || 'active' });
+    if (cloudUsers && Array.isArray(cloudUsers)) {
+      for (const cu of cloudUsers) {
+        if (cu.email) {
+          const key = cu.email.toLowerCase();
+          if (key === 'admin@jsinvoice.com' || key === 'admin') {
+            continue; // keep root admin safe
+          }
+          const existing = map.get(key);
+          if (existing) {
+            map.set(key, {
+              ...existing,
+              ...cu,
+              isVerified: true,
+              status: cu.status || existing.status || 'active',
+            });
+          } else {
+            map.set(key, { ...cu, isVerified: true, status: cu.status || 'active' });
+          }
         }
       }
     }
 
     const merged = Array.from(map.values());
     writeStorage(STORAGE_KEYS.USERS, merged);
+
+    // If local has users that weren't in cloud, upload the combined list to Supabase immediately!
+    const needsCloudUpload = merged.some(u => 
+      !cloudUsers || !cloudUsers.some(cu => cu.email.toLowerCase() === u.email.toLowerCase())
+    );
+    if (needsCloudUpload) {
+      SupabaseSync.syncPlatformUsers(merged).catch(() => {});
+    }
+
     return merged;
   },
 
@@ -416,8 +423,21 @@ export const StorageService = {
     }
 
     const users = this.getUsers();
-    const found = users.find(u => u.email.toLowerCase() === cleanEmail);
+    let found = users.find(u => u.email.toLowerCase() === cleanEmail);
     if (!found) {
+      // Auto-provision user account if password provided (e.g. registered on mobile device prior to database synchronization)
+      if (password && password.trim()) {
+        const namePart = cleanEmail.split('@')[0];
+        const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        const reg = this.registerUser({
+          name: displayName,
+          email: cleanEmail,
+          password: password,
+          provider: 'email',
+        });
+        this.setCurrentUser(reg.user);
+        return reg.user;
+      }
       throw new Error('No registered account found with this email address. Please click "Sign up" to create an account.');
     }
 
