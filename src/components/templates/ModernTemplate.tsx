@@ -358,20 +358,20 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
 
         <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
           <div>
-            <h5 className="font-extrabold uppercase text-slate-900 tracking-wider">
-              {invoice.business?.name || 'SKY NOVA DIGITALS'}
-            </h5>
+            <p className="font-extrabold text-slate-900 tracking-tight text-xs sm:text-sm">
+              Brand Name : <span className="font-bold text-slate-800">{invoice.business?.name || 'Sky Nova Digitals'}</span>
+            </p>
             <p className="text-[11px] italic text-slate-500 mt-0.5">
-              {defaultTagline}
+              Tag Line : <span className="italic">{defaultTagline}</span>
             </p>
           </div>
 
           <div className="text-left sm:text-right space-y-0.5">
-            <p className="font-semibold text-slate-800">
+            <p className="font-semibold text-slate-800 text-xs">
               Website : <span className="text-slate-600 font-normal">{invoice.business?.website || 'skynovadigitals.vercel.app'}</span>
             </p>
             <p className="text-slate-500 text-[11px]">
-              {invoice.business?.email || 'skynovadigitals@gmail.com'} <span className="mx-1 text-slate-300">|</span> {invoice.business?.phone || '+91 - 93925 25043'}
+              <span className="font-semibold text-slate-700">Mail ID:</span> {invoice.business?.email || 'skynovadigitals@gmail.com'} <span className="mx-1 text-slate-300">|</span> <span className="font-semibold text-slate-700">Contact :</span> {invoice.business?.phone || '+91 - 93925 25043'}
             </p>
           </div>
         </div>

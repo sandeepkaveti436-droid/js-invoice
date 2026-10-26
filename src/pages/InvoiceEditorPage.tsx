@@ -86,37 +86,39 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
 
     const defaultClient = clients[0] || {
       id: 'cli_temp',
-      name: '',
-      email: '',
-      addressLine1: '',
-      city: '',
-      state: '',
-      postalCode: '',
-      country: 'United States',
+      name: 'Food Link F&B Holdings LTD',
+      companyName: 'Food Link F&B Holdings LTD',
+      email: 'accounts@foodlink.com',
+      phone: '+91-XXXXXXXXXX',
+      addressLine1: 'Beeramguda',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      postalCode: '500081',
+      country: 'India',
       createdAt: new Date().toISOString(),
     };
 
     const newNumber = generateInvoiceNumber(
-      settings.invoiceDefaults.prefix, 
-      settings.invoiceDefaults.nextNumber
+      settings.invoiceDefaults.prefix || 'N°: ', 
+      settings.invoiceDefaults.nextNumber || 140
     );
 
     const defaultItems: InvoiceItem[] = [
       {
         id: 'it_' + Date.now(),
-        name: 'UI/UX Design & Frontend Scaffolding',
-        description: 'Complete dashboard Figma components and responsive React development.',
-        quantity: 20,
-        unit: 'hrs',
-        unitPrice: 125,
+        name: '13th Lunch Design',
+        description: 'We build software systems that grow with your business.',
+        quantity: 1,
+        unit: 'pkg',
+        unitPrice: 2500,
         discount: 0,
         discountType: 'percentage',
-        taxRate: settings.invoiceDefaults.defaultTaxRate || 10,
+        taxRate: 0,
         lineSubtotal: 2500,
         lineDiscount: 0,
         taxableAmount: 2500,
-        lineTax: 250,
-        lineTotal: 2750,
+        lineTax: 0,
+        lineTotal: 2500,
       },
     ];
 
@@ -153,13 +155,13 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       invoiceDiscountType: 'fixed',
       shippingFee: 0,
       withholdingTaxRate: 0,
-      notes: settings.invoiceDefaults.defaultNotes || 'Thank you for your business.',
-      terms: settings.invoiceDefaults.defaultTerms || 'Payment is due within agreed terms.',
+      notes: settings.invoiceDefaults.defaultNotes || 'We build software systems that grow with your business.',
+      terms: settings.invoiceDefaults.defaultTerms || 'Fees and payment terms will be established in the contract or agreement prior to the commencement of the project. An initial deposit will be required before any design work begins. We reserve the right to suspend or halt work in the event of non-payment.',
       paymentInstructions: 'Please wire funds to the designated account.',
       bankDetails: JSON.parse(JSON.stringify(settings.business.bankDetails)),
       signatureType: 'text',
-      authorizedSignatoryName: settings.business.signatureText || 'Alex Rivera',
-      footerText: 'Generated securely with JS Invoice.',
+      authorizedSignatoryName: settings.business.signatureText || 'SANDEEP KAVETI',
+      footerText: 'We build software systems that grow with your business.',
       status: 'draft',
       templateConfig: {
         templateId: settings.invoiceDefaults.defaultTemplate || 'modern',
