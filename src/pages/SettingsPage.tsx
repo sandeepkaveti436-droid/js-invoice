@@ -142,7 +142,7 @@ export const SettingsPage: React.FC = () => {
             Profile & Settings
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            Configure default billing parameters, branding, payment gateways, and export/import data.
+            Configure default billing parameters, branding, and payment gateways.
           </p>
         </div>
       </div>
@@ -154,11 +154,9 @@ export const SettingsPage: React.FC = () => {
           { id: 'defaults', label: 'Invoice Defaults', icon: Settings2 },
           { id: 'appearance', label: 'Appearance & Templates', icon: Palette },
           { id: 'gateway', label: 'Payment Gateway', icon: CreditCard },
-          { 
-            id: 'data', 
-            label: currentUser?.role === 'admin' ? 'Cloud Database & Backups' : 'Backup & Data Export', 
-            icon: currentUser?.role === 'admin' ? Database : ShieldCheck 
-          },
+          ...(currentUser?.role === 'admin' ? [
+            { id: 'data', label: 'Cloud Database & Backups', icon: Database }
+          ] : []),
         ].map(tab => {
           const Icon = tab.icon;
           return (
@@ -800,30 +798,25 @@ export const SettingsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 5: Data, Backup & Reset */}
-        {activeTab === 'data' && (
+        {/* Tab 5: Cloud Database & Backups - Exclusively for Super Admin */}
+        {currentUser?.role === 'admin' && activeTab === 'data' && (
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-subtle space-y-5 text-xs">
             <div className="pb-2 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">
-                  {currentUser?.role === 'admin' ? 'Database Persistence, Cloud Sync & Backups' : 'Backup & Data Export'}
+                  Database Persistence, Cloud Sync & Backups
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  {currentUser?.role === 'admin'
-                    ? 'Manage production Supabase PostgreSQL persistence and full system JSON snapshots.'
-                    : 'Download portable backups of your invoices, clients, and billing records.'}
+                  Manage production Supabase PostgreSQL persistence and full system JSON snapshots.
                 </p>
               </div>
-              {currentUser?.role === 'admin' && (
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-wider">
-                  Super Admin
-                </span>
-              )}
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-wider">
+                Super Admin
+              </span>
             </div>
 
-            {/* Supabase Cloud Database Configuration - Exclusively visible to Super Admin */}
-            {currentUser?.role === 'admin' && (
-              <div className="p-5 bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl text-white space-y-4 border border-slate-800 shadow-md">
+            {/* Supabase Cloud Database Configuration */}
+            <div className="p-5 bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl text-white space-y-4 border border-slate-800 shadow-md">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
@@ -937,7 +930,6 @@ export const SettingsPage: React.FC = () => {
                 </span>
               </div>
             </div>
-            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Export Card */}
