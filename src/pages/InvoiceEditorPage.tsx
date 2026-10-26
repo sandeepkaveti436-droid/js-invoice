@@ -163,7 +163,7 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       status: 'draft',
       templateConfig: {
         templateId: settings.invoiceDefaults.defaultTemplate || 'modern',
-        accentColor: settings.invoiceDefaults.accentColor || '#4F46E5',
+        accentColor: settings.invoiceDefaults.accentColor || '#EAA000',
         fontFamily: settings.appearance.fontFamily || 'Inter',
         logoPlacement: 'left',
         tableStyle: 'striped',

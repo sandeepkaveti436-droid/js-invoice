@@ -101,11 +101,11 @@ export const createDefaultSettings = (user?: Partial<User>): AppSettings => ({
     defaultNotes: 'Thank you for your business. We appreciate collaborating with you!',
     defaultTerms: 'Payment is due within 30 days of invoice date. Overdue balances may incur a 1.5% late fee.',
     defaultTemplate: 'modern',
-    accentColor: '#4F46E5',
+    accentColor: '#EAA000',
   },
   appearance: {
     fontFamily: 'Inter',
-    accentColor: '#4F46E5',
+    accentColor: '#EAA000',
     sidebarCollapsed: false,
   },
   emailConfig: {

@@ -132,11 +132,11 @@ export const TemplatesPage: React.FC = () => {
   }[] = [
     {
       id: 'modern',
-      name: 'Modern Business',
-      subtitle: 'Contemporary SaaS Standard',
-      description: 'Structured card layout with indigo accent strips, highlighted totals summary, and clean zebra striping.',
-      tags: ['SaaS', 'Agencies', 'Startups'],
-      defaultAccent: '#4F46E5',
+      name: 'Sky Nova Modern (Featured)',
+      subtitle: 'Premium SaaS Card Architecture',
+      description: 'Futuristic geometric brand header, 3-card Bill To / Bill From / Amount Due grid, rounded table rows, and framed bank verification badge.',
+      tags: ['Featured', 'SaaS', 'Agencies'],
+      defaultAccent: '#EAA000',
     },
     {
       id: 'minimal',
