@@ -14,7 +14,7 @@ import {
   UserCheck,
   Eye
 } from 'lucide-react';
-import { validateOfficialEmail } from '../../utils/validation';
+import { validateOfficialEmail, validatePassword, checkPasswordCriteria } from '../../utils/validation';
 
 interface Props {
   isOpen: boolean;
@@ -34,6 +34,8 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const passwordCriteria = checkPasswordCriteria(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +62,12 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
       } else {
         if (!name.trim() || !email.trim() || !password.trim()) {
           setError('Please fill in all required fields.');
+          setIsLoading(false);
+          return;
+        }
+        const passCheck = validatePassword(password);
+        if (!passCheck.valid) {
+          setError(passCheck.reason || 'Password must have at least 1 capital letter and 1 number (or use your Gmail password).');
           setIsLoading(false);
           return;
         }
@@ -248,10 +256,40 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, canClose = true })
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={mode === 'signup' ? "e.g. Pass123 or Gmail password" : "••••••••"}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
             </div>
+
+            {/* SIGN UP PASSWORD INSTRUCTIONS */}
+            {mode === 'signup' && (
+              <div className="mt-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] space-y-1.5">
+                <div className="font-bold text-slate-700 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>Mandatory Requirements:</span>
+                </div>
+                <div className="flex flex-wrap gap-1 text-[10px]">
+                  <span className={`px-2 py-0.5 rounded-md border ${
+                    passwordCriteria.length ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold' : 'bg-white border-slate-200 text-slate-500'
+                  }`}>
+                    {passwordCriteria.length ? '✓' : '•'} Min 6 chars
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-md border ${
+                    passwordCriteria.uppercase ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold' : 'bg-white border-slate-200 text-slate-500'
+                  }`}>
+                    {passwordCriteria.uppercase ? '✓' : '•'} 1 Capital letter (A-Z)
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-md border ${
+                    passwordCriteria.number ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold' : 'bg-white border-slate-200 text-slate-500'
+                  }`}>
+                    {passwordCriteria.number ? '✓' : '•'} 1 Number (0-9)
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 pt-0.5">
+                  💡 Tip: You can also use your same <strong>Gmail ID password</strong>.
+                </p>
+              </div>
+            )}
           </div>
 
           <button

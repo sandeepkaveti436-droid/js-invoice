@@ -13,7 +13,7 @@ import {
 } from '../types';
 import { calculateInvoice } from '../utils/calculator';
 import { generateInvoiceNumber, generateQuoteNumber, getDateAfterDays, getTodayDateString } from '../utils/formatters';
-import { validateOfficialEmail } from '../utils/validation';
+import { validateOfficialEmail, validatePassword } from '../utils/validation';
 
 const STORAGE_KEYS = {
   USERS: 'js_invoice_users_v3',
@@ -247,6 +247,13 @@ export const StorageService = {
 
     if (!payload.name || !payload.name.trim()) {
       throw new Error('Please enter your full name.');
+    }
+
+    if (payload.password) {
+      const passCheck = validatePassword(payload.password);
+      if (!passCheck.valid) {
+        throw new Error(passCheck.reason || 'Password must have at least 1 capital letter and 1 number.');
+      }
     }
 
     const users = this.getUsers();

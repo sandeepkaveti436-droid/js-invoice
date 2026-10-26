@@ -113,3 +113,75 @@ export function validateOfficialEmail(rawEmail: string): EmailValidationResult {
 
   return { valid: true };
 }
+
+export interface PasswordValidationResult {
+  valid: boolean;
+  reason?: string;
+  checks: {
+    length: boolean;
+    uppercase: boolean;
+    number: boolean;
+  };
+}
+
+/**
+ * Returns the live criteria evaluation for password creation
+ */
+export function checkPasswordCriteria(password: string) {
+  const p = password || '';
+  return {
+    length: p.length >= 6,
+    uppercase: /[A-Z]/.test(p),
+    number: /[0-9]/.test(p),
+  };
+}
+
+/**
+ * Validates that the password meets mandatory rules:
+ * - Minimum 6 characters
+ * - At least 1 uppercase letter (A-Z)
+ * - At least 1 number (0-9)
+ * (Or user can match their Gmail ID password if it meets the criteria)
+ */
+export function validatePassword(password: string): PasswordValidationResult {
+  const p = password || '';
+  const checks = checkPasswordCriteria(p);
+
+  if (!p.trim()) {
+    return {
+      valid: false,
+      reason: 'Please enter a password for your account.',
+      checks,
+    };
+  }
+
+  if (!checks.length) {
+    return {
+      valid: false,
+      reason: 'Password must be at least 6 characters long.',
+      checks,
+    };
+  }
+
+  if (!checks.uppercase) {
+    return {
+      valid: false,
+      reason: 'Password must contain at least 1 uppercase capital letter (e.g. A-Z), or use your Gmail password.',
+      checks,
+    };
+  }
+
+  if (!checks.number) {
+    return {
+      valid: false,
+      reason: 'Password must contain at least 1 numeric digit (e.g. 0-9), or use your Gmail password.',
+      checks,
+    };
+  }
+
+  return {
+    valid: true,
+    checks,
+  };
+}
+

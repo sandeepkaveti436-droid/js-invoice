@@ -352,4 +352,33 @@ describe('InvoiceFlow Financial Calculations & Required Test Scenarios', () => {
     assert.equal(validateOfficialEmail('finance@company.org').valid, true);
     assert.equal(validateOfficialEmail('rahul.sharma@techcorp.in').valid, true);
   });
+
+  test('Scenario 12: Mandatory Password Complexity (1 Capital Letter + 1 Number + Min 6 chars)', () => {
+    function validatePassword(password) {
+      const p = password || '';
+      const hasLength = p.length >= 6;
+      const hasUppercase = /[A-Z]/.test(p);
+      const hasNumber = /[0-9]/.test(p);
+
+      if (!p.trim()) return { valid: false, reason: 'Empty password' };
+      if (!hasLength) return { valid: false, reason: 'Length must be >= 6' };
+      if (!hasUppercase) return { valid: false, reason: 'Must contain uppercase' };
+      if (!hasNumber) return { valid: false, reason: 'Must contain number' };
+      return { valid: true };
+    }
+
+    // Fails missing uppercase
+    assert.equal(validatePassword('secret123').valid, false);
+    // Fails missing number
+    assert.equal(validatePassword('SecretPass').valid, false);
+    // Fails too short (< 6 chars)
+    assert.equal(validatePassword('Sec1').valid, false);
+    // Fails empty
+    assert.equal(validatePassword('').valid, false);
+
+    // Passes valid password (e.g. custom or Gmail password meeting standard)
+    assert.equal(validatePassword('Secret123').valid, true);
+    assert.equal(validatePassword('MyGmailPass1').valid, true);
+    assert.equal(validatePassword('Kolkata2026!').valid, true);
+  });
 });

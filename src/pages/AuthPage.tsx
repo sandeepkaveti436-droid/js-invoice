@@ -21,7 +21,7 @@ import {
   CheckCircle2,
   ExternalLink
 } from 'lucide-react';
-import { validateOfficialEmail } from '../utils/validation';
+import { validateOfficialEmail, validatePassword, checkPasswordCriteria } from '../utils/validation';
 
 interface CountryCode {
   name: string;
@@ -232,8 +232,9 @@ export const AuthPage: React.FC = () => {
           return;
         }
 
-        if (!password.trim() || password.length < 6) {
-          setErrorMessage('Password must be at least 6 characters long.');
+        const passCheck = validatePassword(password);
+        if (!passCheck.valid) {
+          setErrorMessage(passCheck.reason || 'Password must be at least 6 characters with at least 1 capital letter and 1 number (or use your Gmail password).');
           setIsLoading(false);
           return;
         }
@@ -298,6 +299,7 @@ export const AuthPage: React.FC = () => {
     showToast('Please enter your official Google account details to register your JS Invoice workspace.', 'info');
   };
 
+  const passwordCriteria = checkPasswordCriteria(password);
   const activeSlideData = CAROUSEL_SLIDES[currentSlide];
 
   return (
@@ -720,7 +722,7 @@ export const AuthPage: React.FC = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password (min 6 characters)"
+                    placeholder={mode === 'signup' ? "e.g. MyPass123 or your Gmail password" : "Enter password"}
                     className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all bg-white"
                   />
                   <button
@@ -732,6 +734,64 @@ export const AuthPage: React.FC = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+
+                {/* SIGN UP: MANDATORY PASSWORD INSTRUCTIONS & LIVE CRITERIA CHECKLIST */}
+                {mode === 'signup' && (
+                  <div className="mt-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/90 text-xs space-y-2 animate-in fade-in">
+                    <div className="flex items-center gap-1.5 text-slate-800">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span className="font-bold text-[11px] text-slate-800">
+                        Password Instructions (Mandatory):
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[11px]">
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                        passwordCriteria.length 
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold' 
+                          : 'bg-white border-slate-200 text-slate-500'
+                      }`}>
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] shrink-0 ${
+                          passwordCriteria.length ? 'bg-emerald-600 text-white font-bold' : 'border border-slate-300 text-slate-400'
+                        }`}>
+                          {passwordCriteria.length ? '✓' : '•'}
+                        </div>
+                        <span>Min 6 characters</span>
+                      </div>
+
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                        passwordCriteria.uppercase 
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold' 
+                          : 'bg-white border-slate-200 text-slate-500'
+                      }`}>
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] shrink-0 ${
+                          passwordCriteria.uppercase ? 'bg-emerald-600 text-white font-bold' : 'border border-slate-300 text-slate-400'
+                        }`}>
+                          {passwordCriteria.uppercase ? '✓' : '•'}
+                        </div>
+                        <span>1 Capital letter (A-Z)</span>
+                      </div>
+
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                        passwordCriteria.number 
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold' 
+                          : 'bg-white border-slate-200 text-slate-500'
+                      }`}>
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] shrink-0 ${
+                          passwordCriteria.number ? 'bg-emerald-600 text-white font-bold' : 'border border-slate-300 text-slate-400'
+                        }`}>
+                          {passwordCriteria.number ? '✓' : '•'}
+                        </div>
+                        <span>1 Number (0-9)</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-0.5 text-[11px] text-slate-600 flex items-start gap-1">
+                      <span className="text-amber-500 font-bold shrink-0">💡 Note:</span>
+                      <span>You can also enter your existing <strong>Gmail ID password</strong> if you prefer to use the same password.</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
