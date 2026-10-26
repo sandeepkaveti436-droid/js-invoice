@@ -28,7 +28,7 @@ import {
   CartesianGrid 
 } from 'recharts';
 import { useApp } from '../context/AppContext';
-import { formatMoney } from '../utils/currency';
+import { formatMoney, CURRENCIES } from '../utils/currency';
 import { formatDate, getInvoiceStatusStyle } from '../utils/formatters';
 import { exportInvoiceToPdf } from '../utils/pdfExport';
 
@@ -42,6 +42,67 @@ const TIME_RANGES: { id: TimeRange; label: string }[] = [
   { id: 'half_yearly', label: 'Half Yearly' },
   { id: 'yearly', label: 'Yearly' },
 ];
+
+interface RevenueTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  defaultCurr: string;
+}
+
+const RevenueChartTooltip: React.FC<RevenueTooltipProps> = ({ active, payload, label, defaultCurr }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const paidItem = payload.find((p: any) => p.dataKey === 'Paid' || p.name?.includes('Paid'));
+  const outstandingItem = payload.find((p: any) => p.dataKey === 'Outstanding' || p.name?.includes('Outstanding'));
+
+  const paidVal = Number(paidItem?.value || 0);
+  const outstandingVal = Number(outstandingItem?.value || 0);
+  const totalVal = paidVal + outstandingVal;
+
+  return (
+    <div className="bg-slate-900/95 backdrop-blur-md text-white px-3.5 py-3 rounded-2xl shadow-2xl border border-slate-700/60 min-w-[210px] text-xs animate-in fade-in-50 duration-150">
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/80">
+        <span className="font-bold text-slate-200 text-xs tracking-tight">{label}</span>
+        <span className="text-[10px] font-semibold text-indigo-300 bg-indigo-950/80 px-2 py-0.5 rounded-full border border-indigo-700/40">
+          Revenue Overview
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {/* Paid Revenue */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0 shadow-sm shadow-indigo-500/50" />
+            <span className="text-slate-300 font-medium text-[11px]">Paid Revenue</span>
+          </div>
+          <span className="font-bold font-mono text-emerald-400 text-xs">
+            {formatMoney(paidVal, defaultCurr)}
+          </span>
+        </div>
+
+        {/* Outstanding Balance */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0" />
+            <span className="text-slate-300 font-medium text-[11px]">Outstanding</span>
+          </div>
+          <span className="font-bold font-mono text-amber-300 text-xs">
+            {formatMoney(outstandingVal, defaultCurr)}
+          </span>
+        </div>
+
+        {/* Total Billed */}
+        <div className="pt-2 mt-1 border-t border-slate-700/60 flex items-center justify-between">
+          <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Total Billed</span>
+          <span className="font-black font-mono text-white text-xs">
+            {formatMoney(totalVal, defaultCurr)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const DashboardPage: React.FC = () => {
   const { 
@@ -444,23 +505,28 @@ export const DashboardPage: React.FC = () => {
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                 <XAxis dataKey="label" stroke="#94A3B8" fontSize={11} tickLine={false} />
-                <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} tickFormatter={val => `₹${val}`} />
+                <YAxis 
+                  stroke="#94A3B8" 
+                  fontSize={11} 
+                  tickLine={false} 
+                  tickFormatter={val => {
+                    const symbol = CURRENCIES[defaultCurr]?.symbol || '₹';
+                    if (val >= 1000000) return `${symbol}${(val / 1000000).toFixed(1)}M`;
+                    if (val >= 1000) return `${symbol}${(val / 1000).toFixed(0)}k`;
+                    return `${symbol}${val}`;
+                  }} 
+                />
                 <Tooltip
-                  formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, '']}
-                  contentStyle={{
-                    backgroundColor: '#0F172A',
-                    borderRadius: '12px',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontSize: '11px',
-                  }}
+                  content={<RevenueChartTooltip defaultCurr={defaultCurr} />}
+                  cursor={{ fill: 'rgba(99, 102, 241, 0.05)', radius: 8 }}
                 />
                 <Legend 
                   iconType="circle" 
-                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} 
+                  wrapperStyle={{ fontSize: '11px', paddingTop: '12px' }} 
+                  formatter={(value) => <span className="text-slate-600 font-semibold text-xs ml-1">{value}</span>}
                 />
-                <Bar dataKey="Paid" fill="#4F46E5" radius={[6, 6, 0, 0]} maxBarSize={36} />
-                <Bar dataKey="Outstanding" fill="#CBD5E1" radius={[6, 6, 0, 0]} maxBarSize={36} />
+                <Bar dataKey="Paid" name="Paid Revenue" fill="#4F46E5" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="Outstanding" name="Outstanding Balance" fill="#94A3B8" radius={[6, 6, 0, 0]} maxBarSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
