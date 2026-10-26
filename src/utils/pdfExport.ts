@@ -1,65 +1,115 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+export type PaperSize = 'a4' | 'a3' | 'letter';
+
 export interface PdfExportOptions {
   filename?: string;
+  paperSize?: PaperSize;
   quality?: number;
 }
 
 /**
  * High-fidelity client-side PDF generator using html2canvas & jsPDF.
- * Renders the invoice DOM element with 2x retina DPI to standard A4 format (210mm x 297mm).
+ * Renders the invoice DOM element with 2x retina DPI to standard A4, A3, or Letter format.
+ * Fits on a single page by default; if line items or content overflow past single-page capacity,
+ * paginates gracefully across 2 or more pages.
  */
 export async function exportInvoiceToPdf(
   elementId: string, 
-  filename = 'invoice.pdf'
+  filenameOrOptions: string | PdfExportOptions = 'invoice.pdf'
 ): Promise<boolean> {
+  const options: PdfExportOptions = typeof filenameOrOptions === 'string' 
+    ? { filename: filenameOrOptions, paperSize: 'a4' }
+    : { filename: 'invoice.pdf', paperSize: 'a4', ...filenameOrOptions };
+
+  const filename = options.filename || 'invoice.pdf';
+  const paperSize = options.paperSize || 'a4';
+
   const element = document.getElementById(elementId);
   if (!element) {
     console.error(`Element with id "${elementId}" not found for PDF export.`);
     return false;
   }
 
+  // Paper dimensions in mm
+  const paperDimensions: Record<PaperSize, { width: number; height: number; jsPdfFormat: string }> = {
+    a4: { width: 210, height: 297, jsPdfFormat: 'a4' },
+    a3: { width: 297, height: 420, jsPdfFormat: 'a3' },
+    letter: { width: 215.9, height: 279.4, jsPdfFormat: 'letter' },
+  };
+
+  const { width: pdfWidth, height: pdfHeight, jsPdfFormat } = paperDimensions[paperSize] || paperDimensions.a4;
+
   try {
-    // Render target DOM with 2x scale and background preservation at standard A4 width
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 794,
+      windowWidth: paperSize === 'a3' ? 1120 : paperSize === 'letter' ? 816 : 794,
     });
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-
-    // Standard A4 dimensions in mm
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4',
+      format: jsPdfFormat as any,
     });
-
-    const pdfWidth = 210;
-    const pdfHeight = 297;
 
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
     const canvasRatio = canvasHeight / canvasWidth;
+    const naturalRenderHeight = pdfWidth * canvasRatio;
 
-    // Strict Single-Page Fit: Proportional scaling so the invoice fits 100% on a single A4 page
-    let renderWidth = pdfWidth;
-    let renderHeight = pdfWidth * canvasRatio;
-    let xOffset = 0;
-    let yOffset = 0;
+    // Fits on 1 single page if normal invoice content (<= 110% of page height)
+    if (naturalRenderHeight <= pdfHeight * 1.10) {
+      let renderWidth = pdfWidth;
+      let renderHeight = naturalRenderHeight;
+      let xOffset = 0;
+      let yOffset = 0;
 
-    if (renderHeight > pdfHeight) {
-      renderHeight = pdfHeight;
-      renderWidth = pdfHeight / canvasRatio;
-      xOffset = (pdfWidth - renderWidth) / 2;
+      if (renderHeight > pdfHeight) {
+        renderHeight = pdfHeight;
+        renderWidth = pdfHeight / canvasRatio;
+        xOffset = (pdfWidth - renderWidth) / 2;
+      }
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      pdf.addImage(imgData, 'JPEG', xOffset, yOffset, renderWidth, renderHeight, undefined, 'FAST');
+    } else {
+      // Natural multi-page flow: if content exceeds 1 page (e.g. many items), cleanly slice into 2 or more pages
+      const pageHeightPx = (canvasWidth * pdfHeight) / pdfWidth;
+      let remainingHeight = canvasHeight;
+      let pageIndex = 0;
+
+      while (remainingHeight > 0) {
+        if (pageIndex > 0) {
+          pdf.addPage(jsPdfFormat as any, 'portrait');
+        }
+
+        const sourceY = pageIndex * pageHeightPx;
+        const currentSliceHeight = Math.min(pageHeightPx, remainingHeight);
+
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvasWidth;
+        pageCanvas.height = currentSliceHeight;
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(
+            canvas,
+            0, sourceY, canvasWidth, currentSliceHeight,
+            0, 0, canvasWidth, currentSliceHeight
+          );
+        }
+
+        const sliceData = pageCanvas.toDataURL('image/jpeg', 0.98);
+        const sliceRenderHeight = (currentSliceHeight * pdfWidth) / canvasWidth;
+        pdf.addImage(sliceData, 'JPEG', 0, 0, pdfWidth, sliceRenderHeight, undefined, 'FAST');
+
+        remainingHeight -= currentSliceHeight;
+        pageIndex++;
+      }
     }
-
-    // Add exactly one single page
-    pdf.addImage(imgData, 'JPEG', xOffset, yOffset, renderWidth, renderHeight, undefined, 'FAST');
 
     pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
     return true;

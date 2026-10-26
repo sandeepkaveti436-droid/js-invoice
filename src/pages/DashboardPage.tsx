@@ -32,6 +32,17 @@ import { formatMoney } from '../utils/currency';
 import { formatDate, getInvoiceStatusStyle } from '../utils/formatters';
 import { exportInvoiceToPdf } from '../utils/pdfExport';
 
+type TimeRange = '1d' | '1w' | '1m' | 'quarterly' | 'half_yearly' | 'yearly';
+
+const TIME_RANGES: { id: TimeRange; label: string }[] = [
+  { id: '1d', label: '1 Day' },
+  { id: '1w', label: '1 Week' },
+  { id: '1m', label: '1 Month' },
+  { id: 'quarterly', label: 'Quarterly' },
+  { id: 'half_yearly', label: 'Half Yearly' },
+  { id: 'yearly', label: 'Yearly' },
+];
+
 export const DashboardPage: React.FC = () => {
   const { 
     currentUser,
@@ -47,7 +58,7 @@ export const DashboardPage: React.FC = () => {
     openClientDetail
   } = useApp();
 
-  const [chartRange, setChartRange] = useState<'6m' | '12m'>('6m');
+  const [chartRange, setChartRange] = useState<TimeRange>('half_yearly');
   const defaultCurr = settings?.invoiceDefaults?.defaultCurrency || 'INR';
 
   // Compute KPI metrics dynamically
@@ -77,35 +88,169 @@ export const DashboardPage: React.FC = () => {
     };
   }, [invoices]);
 
-  // Compute Chart Data (monthly aggregate of paid vs outstanding)
+  // Compute Dynamic Chart Data based on selected time window
   const chartData = useMemo(() => {
-    const months = ['Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026'];
-    
-    return months.map(month => {
-      // Aggregate real invoice values or baseline
-      const isJan = month.startsWith('Jan');
-      const isFeb = month.startsWith('Feb');
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    if (chartRange === '1d') {
+      // 1 Day: Hourly breakdown
+      const slots = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00', '23:59'];
+      const todayInvoices = invoices.filter(i => i.issueDate === todayStr || i.createdAt?.startsWith(todayStr));
+      const totalPaidToday = todayInvoices.reduce((sum, i) => sum + i.amountPaid, 0);
+      const totalOutToday = todayInvoices.reduce((sum, i) => sum + i.balanceDue, 0);
+
+      return slots.map((time, idx) => ({
+        label: time,
+        Paid: idx === 3 ? totalPaidToday : 0,
+        Outstanding: idx === 3 ? totalOutToday : 0,
+      }));
+    }
+
+    if (chartRange === '1w') {
+      // 1 Week: 7 Days
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const result: { label: string; Paid: number; Outstanding: number }[] = [];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dStr = d.toISOString().split('T')[0];
+        const dayLabel = `${days[d.getDay()]} ${d.getDate()}`;
+
+        const dayInvs = invoices.filter(inv => inv.issueDate === dStr || inv.createdAt?.startsWith(dStr));
+        const paid = dayInvs.reduce((sum, inv) => sum + inv.amountPaid, 0);
+        const outstanding = dayInvs.reduce((sum, inv) => sum + inv.balanceDue, 0);
+
+        result.push({
+          label: dayLabel,
+          Paid: Math.round(paid),
+          Outstanding: Math.round(outstanding),
+        });
+      }
+      return result;
+    }
+
+    if (chartRange === '1m') {
+      // 1 Month: 4 Weeks
+      const result: { label: string; Paid: number; Outstanding: number }[] = [];
+      const currentYear = now.getFullYear();
+      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+      const prefix = `${currentYear}-${currentMonth}`;
+
+      const weekBuckets = [
+        { label: 'Week 1 (1-7)', start: 1, end: 7 },
+        { label: 'Week 2 (8-14)', start: 8, end: 14 },
+        { label: 'Week 3 (15-21)', start: 15, end: 21 },
+        { label: 'Week 4 (22+)', start: 22, end: 31 },
+      ];
+
+      weekBuckets.forEach(b => {
+        let paid = 0;
+        let outstanding = 0;
+        invoices.forEach(inv => {
+          if (inv.issueDate.startsWith(prefix)) {
+            const day = parseInt(inv.issueDate.split('-')[2] || '1', 10);
+            if (day >= b.start && day <= b.end) {
+              paid += inv.amountPaid;
+              outstanding += inv.balanceDue;
+            }
+          }
+        });
+        result.push({
+          label: b.label,
+          Paid: Math.round(paid),
+          Outstanding: Math.round(outstanding),
+        });
+      });
+      return result;
+    }
+
+    if (chartRange === 'quarterly') {
+      // Quarterly: Last 3 Months
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const result: { label: string; Paid: number; Outstanding: number }[] = [];
+
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const y = d.getFullYear();
+        const m = d.getMonth();
+        const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
+        const label = `${monthNames[m]} ${y}`;
+
+        let paid = 0;
+        let outstanding = 0;
+        invoices.forEach(inv => {
+          if (inv.issueDate.startsWith(prefix)) {
+            paid += inv.amountPaid;
+            outstanding += inv.balanceDue;
+          }
+        });
+        result.push({
+          label,
+          Paid: Math.round(paid),
+          Outstanding: Math.round(outstanding),
+        });
+      }
+      return result;
+    }
+
+    if (chartRange === 'yearly') {
+      // Yearly: 12 Months
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const result: { label: string; Paid: number; Outstanding: number }[] = [];
+
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const y = d.getFullYear();
+        const m = d.getMonth();
+        const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
+        const label = monthNames[m];
+
+        let paid = 0;
+        let outstanding = 0;
+        invoices.forEach(inv => {
+          if (inv.issueDate.startsWith(prefix)) {
+            paid += inv.amountPaid;
+            outstanding += inv.balanceDue;
+          }
+        });
+        result.push({
+          label,
+          Paid: Math.round(paid),
+          Outstanding: Math.round(outstanding),
+        });
+      }
+      return result;
+    }
+
+    // Default: 'half_yearly' (6 Months)
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const result: { label: string; Paid: number; Outstanding: number }[] = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
+      const label = monthNames[m];
 
       let paid = 0;
       let outstanding = 0;
-
       invoices.forEach(inv => {
-        if (isJan && inv.issueDate.startsWith('2026-01')) {
-          paid += inv.amountPaid;
-          outstanding += inv.balanceDue;
-        } else if (isFeb && inv.issueDate.startsWith('2026-02')) {
+        if (inv.issueDate.startsWith(prefix)) {
           paid += inv.amountPaid;
           outstanding += inv.balanceDue;
         }
       });
-
-      return {
-        month: month.split(' ')[0],
+      result.push({
+        label,
         Paid: Math.round(paid),
         Outstanding: Math.round(outstanding),
-      };
-    });
-  }, [invoices]);
+      });
+    }
+    return result;
+  }, [invoices, chartRange]);
 
   // Upcoming payments (pending or partial invoices ordered by due date)
   const upcomingPayments = useMemo(() => {
@@ -131,7 +276,7 @@ export const DashboardPage: React.FC = () => {
             {currentUser ? `Welcome back, ${currentUser.name}` : 'Financial Performance'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            {currentUser?.companyName ? `${currentUser.companyName} • ` : ''}Real-time billing analytics, pending collections, and cash flow summary.
+            Real-time billing analytics, pending collections, and cash flow summary.
           </p>
         </div>
 
@@ -185,9 +330,13 @@ export const DashboardPage: React.FC = () => {
           </p>
           <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-slate-400">{metrics.totalCount} total billed</span>
-            <span className="inline-flex items-center text-emerald-600 font-medium">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> +14.2%
-            </span>
+            {metrics.totalCount > 0 ? (
+              <span className="inline-flex items-center text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]">
+                <ArrowUpRight className="w-3 h-3 mr-0.5" /> Active
+              </span>
+            ) : (
+              <span className="text-slate-400 text-[11px]">0% (No data)</span>
+            )}
           </div>
         </div>
 
@@ -204,9 +353,13 @@ export const DashboardPage: React.FC = () => {
           </p>
           <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-slate-400">{metrics.paidCount} settled in full</span>
-            <span className="inline-flex items-center text-emerald-600 font-medium">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> +18.5%
-            </span>
+            {metrics.paidCount > 0 ? (
+              <span className="inline-flex items-center text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]">
+                <CheckCircle2 className="w-3 h-3 mr-0.5" /> Settled
+              </span>
+            ) : (
+              <span className="text-slate-400 text-[11px]">0% settled</span>
+            )}
           </div>
         </div>
 
@@ -223,7 +376,11 @@ export const DashboardPage: React.FC = () => {
           </p>
           <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-slate-400">{metrics.outstandingCount} pending receipt</span>
-            <span className="text-slate-500 font-medium">Active Net Terms</span>
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+              metrics.outstandingCount > 0 ? 'bg-amber-50 text-amber-700' : 'text-slate-400'
+            }`}>
+              {metrics.outstandingCount > 0 ? 'Active Receivables' : 'All Settled'}
+            </span>
           </div>
         </div>
 
@@ -240,9 +397,15 @@ export const DashboardPage: React.FC = () => {
           </p>
           <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-slate-400">{metrics.overdueCount} require follow-up</span>
-            <span className="inline-flex items-center text-rose-600 font-medium">
-              <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" /> Past Due
-            </span>
+            {metrics.overdueCount > 0 ? (
+              <span className="inline-flex items-center text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded-full text-[10px]">
+                <AlertTriangle className="w-3 h-3 mr-0.5" /> Past Due
+              </span>
+            ) : (
+              <span className="text-emerald-600 text-[11px] font-medium flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> All on Schedule
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -257,23 +420,22 @@ export const DashboardPage: React.FC = () => {
               <p className="text-xs text-slate-500">Collected cash receipts vs outstanding receivables</p>
             </div>
 
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-medium">
-              <button
-                onClick={() => setChartRange('6m')}
-                className={`px-3 py-1 rounded-lg transition-colors ${
-                  chartRange === '6m' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
-                }`}
-              >
-                6 Months
-              </button>
-              <button
-                onClick={() => setChartRange('12m')}
-                className={`px-3 py-1 rounded-lg transition-colors ${
-                  chartRange === '12m' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
-                }`}
-              >
-                12 Months
-              </button>
+            {/* Premium Range Selector (1 Day, 1 Week, 1 Month, Quarterly, Half Yearly, Yearly) */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold overflow-x-auto max-w-full">
+              {TIME_RANGES.map(r => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setChartRange(r.id)}
+                  className={`px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
+                    chartRange === r.id 
+                      ? 'bg-white text-indigo-700 shadow-sm font-bold' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -281,7 +443,7 @@ export const DashboardPage: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="month" stroke="#94A3B8" fontSize={11} tickLine={false} />
+                <XAxis dataKey="label" stroke="#94A3B8" fontSize={11} tickLine={false} />
                 <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} tickFormatter={val => `₹${val}`} />
                 <Tooltip
                   formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, '']}

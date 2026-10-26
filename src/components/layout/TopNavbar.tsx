@@ -132,7 +132,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
       case 'templates':
         return { title: 'Invoice Template Gallery', breadcrumb: 'Templates' };
       case 'settings':
-        return { title: 'Business Settings', breadcrumb: 'Settings' };
+        return { title: 'Profile & Settings', breadcrumb: 'Settings' };
       default:
         return { title: 'JS Invoice', breadcrumb: 'Home' };
     }
@@ -410,7 +410,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                       }}
                       className="w-full text-left px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-50 font-medium"
                     >
-                      Business Profile & Settings
+                      Profile & Settings
                     </button>
                   </div>
 

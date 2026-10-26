@@ -6,6 +6,8 @@ import { FreelancerTemplate } from './FreelancerTemplate';
 import { AgencyTemplate } from './AgencyTemplate';
 import { CorporateTemplate } from './CorporateTemplate';
 import { GSTInvoiceTemplate } from './GSTInvoiceTemplate';
+import { ExecutiveTemplate } from './ExecutiveTemplate';
+import { CreativeTemplate } from './CreativeTemplate';
 
 interface Props {
   invoice: Invoice;
@@ -36,6 +38,10 @@ export const TemplateRenderer: React.FC<Props> = ({
         return <CorporateTemplate invoice={invoice} customization={customization} visibility={visibility} />;
       case 'gst':
         return <GSTInvoiceTemplate invoice={invoice} customization={customization} visibility={visibility} />;
+      case 'executive':
+        return <ExecutiveTemplate invoice={invoice} customization={customization} visibility={visibility} />;
+      case 'creative':
+        return <CreativeTemplate invoice={invoice} customization={customization} visibility={visibility} />;
       case 'modern':
       default:
         return <ModernTemplate invoice={invoice} customization={customization} visibility={visibility} />;

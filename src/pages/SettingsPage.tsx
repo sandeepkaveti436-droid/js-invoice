@@ -20,10 +20,16 @@ import { CURRENCIES } from '../utils/currency';
 import { StorageService } from '../services/storage';
 
 export const SettingsPage: React.FC = () => {
-  const { settings, updateSettings, clearMyData, showToast } = useApp();
+  const { currentUser, settings, updateSettings, clearMyData, showToast } = useApp();
 
   const [activeTab, setActiveTab] = useState<'business' | 'defaults' | 'appearance' | 'gateway' | 'data'>('business');
-  const [formData, setFormData] = useState<AppSettings>(JSON.parse(JSON.stringify(settings)));
+  const [formData, setFormData] = useState<AppSettings>(() => {
+    const copy: AppSettings = JSON.parse(JSON.stringify(settings));
+    if (copy.business?.name && (copy.business.name.endsWith("'s Business") || copy.business.name === `${currentUser?.name}'s Business`)) {
+      copy.business.name = '';
+    }
+    return copy;
+  });
   const [jsonBackupString, setJsonBackupString] = useState('');
 
   const handleSave = (e: React.FormEvent) => {
@@ -67,26 +73,18 @@ export const SettingsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Settings & Business Profile
+            Profile & Settings
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
             Configure default billing parameters, branding, payment gateways, and export/import data.
           </p>
         </div>
-
-        <button
-          onClick={handleSave}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm shadow-indigo-200 transition-all active:scale-95"
-        >
-          <Save className="w-4 h-4" />
-          <span>Save Changes</span>
-        </button>
       </div>
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-slate-200 text-xs overflow-x-auto pb-1">
         {[
-          { id: 'business', label: 'Business Profile', icon: Building2 },
+          { id: 'business', label: 'Profile & Settings', icon: Building2 },
           { id: 'defaults', label: 'Invoice Defaults', icon: Settings2 },
           { id: 'appearance', label: 'Appearance & Templates', icon: Palette },
           { id: 'gateway', label: 'Payment Gateway', icon: CreditCard },
@@ -116,7 +114,7 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'business' && (
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-subtle space-y-4 text-xs">
             <h3 className="font-bold text-slate-900 text-sm pb-2 border-b border-slate-100">
-              Primary Business Profile
+              Profile & Business Details
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -125,13 +123,14 @@ export const SettingsPage: React.FC = () => {
                 <input
                   type="text"
                   value={formData.business.name}
+                  placeholder="Enter company or trade name (optional)"
                   onChange={e =>
                     setFormData({
                       ...formData,
                       business: { ...formData.business, name: e.target.value },
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
                 />
               </div>
 

@@ -114,25 +114,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Primary Action Button */}
-        <div className="p-4">
-          <button
-            onClick={() => {
-              openCreateInvoice();
-              setMobileOpen(false);
-            }}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-medium text-sm text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-sm shadow-indigo-200 group ${
-              collapsed ? 'px-0' : ''
-            }`}
-            title="Create New Invoice"
-          >
-            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-200" />
-            {!collapsed && <span>Create Invoice</span>}
-          </button>
-        </div>
-
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {navItems.map(item => {
             const Icon = item.icon;
             const active = isActive(item.id);
@@ -176,7 +159,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-3 border-t border-slate-100 bg-slate-50/50">
           {!collapsed ? (
             currentUser ? (
-              <div className="flex items-center gap-3 p-2 rounded-xl bg-white border border-slate-200/80 shadow-subtle">
+              <div 
+                onClick={() => setCurrentView('settings')}
+                className="flex items-center gap-3 p-2 rounded-xl bg-white border border-slate-200/80 shadow-subtle cursor-pointer hover:border-indigo-300 transition-colors"
+                title="Open Profile & Settings"
+              >
                 <div className="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
                   {currentUser.name.substring(0, 2).toUpperCase()}
                 </div>
@@ -187,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </p>
                   </div>
                   <p className="text-[11px] text-slate-500 truncate">
-                    {currentUser.companyName || currentUser.email}
+                    Profile & Settings
                   </p>
                 </div>
               </div>

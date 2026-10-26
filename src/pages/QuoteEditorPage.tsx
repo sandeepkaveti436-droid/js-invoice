@@ -42,19 +42,19 @@ export const QuoteEditorPage: React.FC<Props> = ({ isEditing = false }) => {
     const defaultItems: InvoiceItem[] = [
       {
         id: 'qit_' + Date.now(),
-        name: 'Design & Engineering Proposal',
-        description: 'Complete UI exploration and scalable backend scaffolding.',
-        quantity: 30,
+        name: '',
+        description: '',
+        quantity: 1,
         unit: 'hrs',
-        unitPrice: 125,
+        unitPrice: 0,
         discount: 0,
         discountType: 'percentage',
-        taxRate: 10,
-        lineSubtotal: 3750,
+        taxRate: 0,
+        lineSubtotal: 0,
         lineDiscount: 0,
-        taxableAmount: 3750,
-        lineTax: 375,
-        lineTotal: 4125,
+        taxableAmount: 0,
+        lineTax: 0,
+        lineTotal: 0,
       },
     ];
 
@@ -80,9 +80,9 @@ export const QuoteEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       currency: settings.invoiceDefaults.defaultCurrency || 'INR',
       business: JSON.parse(JSON.stringify(settings.business)),
       client: clients[0] || {
-        id: 'cli_default',
-        name: 'Client Name',
-        email: 'client@example.com',
+        id: '',
+        name: '',
+        email: '',
         addressLine1: '',
         city: '',
         state: '',
@@ -97,8 +97,8 @@ export const QuoteEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       invoiceDiscount: 0,
       invoiceDiscountType: 'fixed',
       shippingFee: 0,
-      notes: 'Estimate valid for 15 days. 50% deposit upon kickoff.',
-      terms: 'Milestone deliveries as per agreed technical specification.',
+      notes: 'Estimate valid for 15 days.',
+      terms: 'Milestone deliverables as per agreed specification.',
       status: 'draft',
       templateConfig: {
         templateId: 'modern',
@@ -272,15 +272,21 @@ export const QuoteEditorPage: React.FC<Props> = ({ isEditing = false }) => {
         <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs">
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Estimated For</span>
-            <p className="font-bold text-sm text-slate-900">{quote.client?.name}</p>
-            {quote.client?.companyName && <p className="text-slate-500">{quote.client.companyName}</p>}
-            <p className="text-slate-400">{quote.client?.email}</p>
+            {quote.client?.name ? (
+              <>
+                <p className="font-bold text-sm text-slate-900">{quote.client.name}</p>
+                {quote.client?.companyName && <p className="text-slate-500">{quote.client.companyName}</p>}
+                <p className="text-slate-400">{quote.client?.email}</p>
+              </>
+            ) : (
+              <p className="font-semibold text-slate-400 italic">No client selected — click Select Client to choose or enter client details</p>
+            )}
           </div>
 
           <button
             type="button"
             onClick={() => setIsClientModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 font-semibold text-slate-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 font-semibold text-slate-700 shadow-sm"
           >
             <Users className="w-3.5 h-3.5 text-slate-500" />
             <span>Select Client</span>

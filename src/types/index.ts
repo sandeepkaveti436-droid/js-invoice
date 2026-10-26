@@ -131,7 +131,8 @@ export interface TaxBreakdown {
 }
 
 export interface TemplateCustomization {
-  templateId: 'modern' | 'minimal' | 'freelancer' | 'agency' | 'corporate' | 'gst';
+  templateId: 'modern' | 'minimal' | 'freelancer' | 'agency' | 'corporate' | 'gst' | 'executive' | 'creative';
+  paperSize?: 'a4' | 'a3' | 'letter';
   accentColor: string;
   fontFamily: 'Inter' | 'Plus Jakarta Sans' | 'Playfair Display' | 'JetBrains Mono' | 'Georgia';
   logoPlacement: 'left' | 'center' | 'right';

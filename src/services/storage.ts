@@ -175,25 +175,33 @@ export const StorageService = {
         try { localStorage.removeItem(k); } catch (e) {}
       });
 
-      // Filter out any dummy emails in v3 users if any exist
+      // Filter out any dummy emails in v3 users if any exist & remove auto-generated "'s Business"
       try {
         const raw = localStorage.getItem(STORAGE_KEYS.USERS);
         if (raw) {
           const list: User[] = JSON.parse(raw);
-          const sanitized = list.filter(u => validateOfficialEmail(u.email).valid);
-          if (sanitized.length !== list.length) {
-            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(sanitized));
-          }
+          const sanitized = list
+            .filter(u => validateOfficialEmail(u.email).valid)
+            .map(u => {
+              if (u.companyName && (u.companyName === `${u.name}'s Business` || u.companyName.endsWith("'s Business"))) {
+                return { ...u, companyName: '' };
+              }
+              return u;
+            });
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(sanitized));
         }
       } catch (e) {}
 
-      // Check current user: purge if dummy or not verified
+      // Check current user: purge if dummy or not verified, and sanitize companyName
       try {
         const rawCur = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
         if (rawCur) {
           const cur: User = JSON.parse(rawCur);
           if (!cur || !validateOfficialEmail(cur.email).valid || cur.isVerified !== true) {
             localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+          } else if (cur.companyName && (cur.companyName === `${cur.name}'s Business` || cur.companyName.endsWith("'s Business"))) {
+            cur.companyName = '';
+            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(cur));
           }
         }
       } catch (e) {}
@@ -270,7 +278,7 @@ export const StorageService = {
       email: cleanEmail,
       password: payload.password,
       phone: payload.phone?.trim() || '',
-      companyName: payload.companyName?.trim() || `${payload.name.trim()}'s Business`,
+      companyName: payload.companyName?.trim() || '',
       provider: payload.provider || 'email',
       role: 'user',
       createdAt: new Date().toISOString(),

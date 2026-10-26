@@ -243,7 +243,7 @@ export const AuthPage: React.FC = () => {
 
         try {
           // Attempt registration and generate official verification link
-          const res = await signup(cleanName, cleanEmail, password, `${cleanName}'s Business`, fullPhoneNumber);
+          const res = await signup(cleanName, cleanEmail, password, '', fullPhoneNumber);
           
           setVerificationDetails({
             name: cleanName,
