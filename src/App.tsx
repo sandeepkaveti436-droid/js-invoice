@@ -7,7 +7,6 @@ import { InvoiceEditorPage } from './pages/InvoiceEditorPage';
 import { InvoiceDetailPage } from './pages/InvoiceDetailPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { ClientDetailPage } from './pages/ClientDetailPage';
-import { ProductsPage } from './pages/ProductsPage';
 import { QuotesPage } from './pages/QuotesPage';
 import { QuoteEditorPage } from './pages/QuoteEditorPage';
 import { PaymentsPage } from './pages/PaymentsPage';
@@ -36,8 +35,6 @@ const MainViewRouter: React.FC = () => {
       return <ClientsPage />;
     case 'client_detail':
       return <ClientDetailPage />;
-    case 'products':
-      return <ProductsPage />;
     case 'quotes':
       return <QuotesPage />;
     case 'quote_create':

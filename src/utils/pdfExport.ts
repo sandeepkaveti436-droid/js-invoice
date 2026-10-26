@@ -21,14 +21,13 @@ export async function exportInvoiceToPdf(
   }
 
   try {
-    // Render target DOM with 2x scale and background preservation
+    // Render target DOM with 2x scale and background preservation at standard A4 width
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: element.scrollWidth,
-      windowHeight: element.scrollHeight,
+      windowWidth: 794,
     });
 
     const imgData = canvas.toDataURL('image/jpeg', 0.98);
@@ -41,24 +40,26 @@ export async function exportInvoiceToPdf(
     });
 
     const pdfWidth = 210;
-    const pageHeight = 297;
-    const imgWidth = pdfWidth;
-    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pdfHeight = 297;
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const canvasRatio = canvasHeight / canvasWidth;
 
-    // Add first page
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-    heightLeft -= pageHeight;
+    // Strict Single-Page Fit: Proportional scaling so the invoice fits 100% on a single A4 page
+    let renderWidth = pdfWidth;
+    let renderHeight = pdfWidth * canvasRatio;
+    let xOffset = 0;
+    let yOffset = 0;
 
-    // Multi-page handling if invoice overflows standard A4 length
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= pageHeight;
+    if (renderHeight > pdfHeight) {
+      renderHeight = pdfHeight;
+      renderWidth = pdfHeight / canvasRatio;
+      xOffset = (pdfWidth - renderWidth) / 2;
     }
+
+    // Add exactly one single page
+    pdf.addImage(imgData, 'JPEG', xOffset, yOffset, renderWidth, renderHeight, undefined, 'FAST');
 
     pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
     return true;

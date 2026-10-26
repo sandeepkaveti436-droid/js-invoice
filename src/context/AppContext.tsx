@@ -133,10 +133,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Auth Functions
   const login = async (email: string, pass?: string): Promise<User> => {
-    const user = StorageService.loginUser(email);
-    if (!user) {
-      throw new Error('User not found. Please click "Create Account" to sign up.');
-    }
+    const user = StorageService.loginUser(email, pass);
     setCurrentUser(user);
     return user;
   };
@@ -145,6 +142,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const user = StorageService.registerUser({
       name,
       email,
+      password: pass,
       phone,
       companyName,
       provider: 'email',

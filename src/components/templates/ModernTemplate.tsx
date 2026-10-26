@@ -15,59 +15,66 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
   const vis = { ...invoice.visibility, ...visibility };
   const currency = invoice.currency;
 
-  const defaultTagline = 'We build software systems that grow with your business.';
-  const defaultTerms =
-    'Fees and payment terms will be established in the contract or agreement prior to the commencement of the project. An initial deposit will be required before any design work begins. We reserve the right to suspend or halt work in the event of non-payment.';
+  const tagline = invoice.notes || '';
+  const displayInvoiceNumber = invoice.number 
+    ? (invoice.number.startsWith('N°') ? invoice.number : `N°: ${invoice.number}`)
+    : 'N°: 000140';
 
   return (
     <div 
-      className="p-8 sm:p-12 text-[#1E293B] bg-white min-h-[1050px] flex flex-col justify-between font-sans selection:bg-amber-100"
+      className="p-6 sm:p-8 text-[#1E293B] bg-white min-h-[1060px] flex flex-col justify-between font-sans selection:bg-amber-100"
       style={{ fontFamily: customization?.fontFamily || invoice.templateConfig?.fontFamily || 'Inter, -apple-system, sans-serif' }}
     >
       <div>
         {/* ======================================================== */}
         {/* TOP HEADER: Logo / Brand & Invoice Meta                  */}
         {/* ======================================================== */}
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-6 pb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-5 pb-5 border-b border-slate-100/80">
           {/* Top Left: Logo & Tagline */}
           <div>
             {vis.showLogo && invoice.business?.logoUrl ? (
               <img 
                 src={invoice.business.logoUrl} 
-                alt={invoice.business.name} 
-                className="h-12 max-w-[200px] object-contain mb-2" 
+                alt={invoice.business.name || 'Brand Logo'} 
+                className="h-12 max-w-[200px] object-contain mb-2 rounded-lg" 
               />
             ) : (
               <div className="flex items-center gap-2 mb-1.5">
-                {/* Styled Futuristic Vector Logo Emblem (matching SND in reference) */}
-                <div className="flex items-center gap-1 font-mono font-black text-3xl sm:text-4xl tracking-tighter" style={{ color: accentColor }}>
+                {/* Styled Futuristic Vector Logo Emblem */}
+                <div className="flex items-center gap-1.5 font-mono font-black text-2xl sm:text-3xl tracking-tighter" style={{ color: accentColor }}>
                   <svg className="h-8 w-8 sm:h-9 sm:w-9" viewBox="0 0 40 40" fill="none">
                     <rect x="2" y="2" width="36" height="36" rx="10" stroke={accentColor} strokeWidth="3" />
                     <path d="M11 20h18M20 11v18M13 13l14 14" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round" />
                   </svg>
-                  <span>{invoice.business?.name ? invoice.business.name.split(' ').map(w => w[0]).join('').substring(0, 3).toUpperCase() : 'SND'}</span>
+                  <span>
+                    {invoice.business?.name 
+                      ? invoice.business.name.split(' ').map(w => w[0]).join('').substring(0, 3).toUpperCase() 
+                      : 'JS'}
+                  </span>
                 </div>
               </div>
             )}
 
-            <p className="text-xs sm:text-sm italic text-slate-700 font-medium tracking-tight">
-              {invoice.notes || defaultTagline}
-            </p>
+            {tagline ? (
+              <p className="text-xs sm:text-sm italic text-slate-700 font-medium tracking-tight">
+                {tagline}
+              </p>
+            ) : null}
           </div>
 
           {/* Top Right: Invoice Number & Issue Date */}
-          <div className="text-left sm:text-right space-y-1.5 shrink-0">
+          <div className="text-left sm:text-right space-y-1 shrink-0">
             <div>
               <span className="text-xs text-slate-400 block font-normal">Invoice number:</span>
               <p className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                N°: {invoice.number || '000140'}
+                {displayInvoiceNumber}
               </p>
             </div>
 
             <div className="pt-1">
               <span className="text-xs text-slate-400 block font-normal">Issued:</span>
               <p className="text-xs sm:text-sm font-bold text-slate-900">
-                {formatDate(invoice.issueDate) || 'September 13, 2026'}
+                {formatDate(invoice.issueDate)}
               </p>
             </div>
           </div>
@@ -76,12 +83,12 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
         {/* ======================================================== */}
         {/* 3 SUMMARY CARDS: BILL TO, BILL FROM, & AMOUNT DUE        */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-[26px] p-4 sm:p-5 border border-slate-100 shadow-[0_4px_25px_-4px_rgba(0,0,0,0.06)] my-4 sm:my-6">
+        <div className="bg-white rounded-[24px] p-4 sm:p-5 border border-slate-100 shadow-[0_4px_25px_-4px_rgba(0,0,0,0.06)] my-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* CARD 1: BILL TO */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 mb-2.5">
+              <div className="flex items-center gap-1.5 mb-2">
                 <div 
                   className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-bold shadow-sm"
                   style={{ backgroundColor: accentColor }}
@@ -100,19 +107,21 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
                       <User className="w-3 h-3 text-amber-600" />
                     </div>
                     <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug">
-                      {invoice.client?.companyName || invoice.client?.name || 'Food Link F&B Holdings LTD'}
+                      {invoice.client?.companyName || invoice.client?.name || (
+                        <span className="text-slate-400 font-normal italic">Client Name</span>
+                      )}
                     </h3>
                   </div>
 
                   <p className="text-xs text-slate-500 mt-2">
-                    Contact : {invoice.client?.phone || '+91-XXXXXXXXXX'}
+                    Contact : {invoice.client?.phone || <span className="text-slate-400 italic">Not specified</span>}
                   </p>
                 </div>
 
                 <div>
                   <div className="border-b border-dashed border-slate-300 my-2.5" />
                   <p className="text-xs text-slate-500">
-                    Location : {invoice.client?.city || invoice.client?.addressLine1 || 'Hyderabad'}
+                    Location : {invoice.client?.city || invoice.client?.addressLine1 || <span className="text-slate-400 italic">Not specified</span>}
                   </p>
                 </div>
               </div>
@@ -120,7 +129,7 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
 
             {/* CARD 2: BILL FROM */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 mb-2.5">
+              <div className="flex items-center gap-1.5 mb-2">
                 <div 
                   className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-bold shadow-sm"
                   style={{ backgroundColor: accentColor }}
@@ -137,19 +146,21 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
                   <div className="flex items-center gap-2 mb-2">
                     <Building2 className="w-4 h-4 text-amber-600 shrink-0" />
                     <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug">
-                      {invoice.business?.name || 'Sky Nova Digitals'}
+                      {invoice.business?.name || (
+                        <span className="text-slate-400 font-normal italic">Your Business Name</span>
+                      )}
                     </h3>
                   </div>
 
                   <p className="text-xs text-slate-500 mt-2">
-                    Contact : {invoice.business?.phone || '+91- 9392525043'}
+                    Contact : {invoice.business?.phone || <span className="text-slate-400 italic">Phone number</span>}
                   </p>
                 </div>
 
                 <div className="text-xs text-slate-500 space-y-0.5 mt-2">
-                  <p>{invoice.business?.addressLine1 || 'Beeramguda, Hyderabad'}</p>
+                  <p>{invoice.business?.addressLine1 || <span className="text-slate-400 italic">Street address</span>}</p>
                   <p>
-                    {invoice.business?.state || 'Telangana'} - {invoice.business?.postalCode || '502032'}
+                    {[invoice.business?.city, invoice.business?.state, invoice.business?.postalCode].filter(Boolean).join(', ')}
                   </p>
                 </div>
               </div>
@@ -157,7 +168,7 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
 
             {/* CARD 3: AMOUNT DUE (Standout Vibrant Amber Card) */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 mb-2.5">
+              <div className="flex items-center gap-1.5 mb-2">
                 <div 
                   className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-bold shadow-sm"
                   style={{ backgroundColor: accentColor }}
@@ -170,7 +181,7 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
               </div>
 
               <div 
-                className="rounded-2xl p-5 sm:p-6 text-white shadow-xl flex-1 flex flex-col justify-between transition-all"
+                className="rounded-2xl p-4 sm:p-5 text-white shadow-xl flex-1 flex flex-col justify-between transition-all"
                 style={{ 
                   backgroundColor: accentColor,
                   boxShadow: `0 14px 30px -6px ${accentColor}50` 
@@ -181,13 +192,13 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
                     {currency || 'INR'}
                   </span>
                   <p className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
-                    {formatMoney(invoice.balanceDue ?? invoice.grandTotal, currency)}
+                    {formatMoney(invoice.balanceDue ?? invoice.grandTotal ?? 0, currency)}
                   </p>
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-3">
                   <p className="text-xs sm:text-sm font-medium text-white/90">
-                    {formatDate(invoice.dueDate) || 'August 13 2026'}
+                    {invoice.dueDate ? `Due: ${formatDate(invoice.dueDate)}` : 'Due on receipt'}
                   </p>
                 </div>
               </div>
@@ -199,9 +210,9 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
         {/* ======================================================== */}
         {/* LINE ITEMS TABLE                                         */}
         {/* ======================================================== */}
-        <div className="bg-white rounded-[24px] border border-slate-100 p-5 sm:p-6 shadow-[0_4px_25px_-4px_rgba(0,0,0,0.04)] my-4 sm:my-6">
+        <div className="bg-white rounded-[22px] border border-slate-100 p-4 sm:p-5 shadow-[0_4px_25px_-4px_rgba(0,0,0,0.04)] my-4">
           {/* Header Row */}
-          <div className="grid grid-cols-12 gap-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider pb-3 px-3">
+          <div className="grid grid-cols-12 gap-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider pb-2.5 px-3">
             <div className="col-span-6 sm:col-span-7">DESCRIPTION</div>
             <div className="col-span-2 text-center">QTY</div>
             <div className="col-span-2 text-right">PRICE</div>
@@ -210,19 +221,19 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
 
           {/* Item Rows */}
           <div className="space-y-2">
-            {invoice.items.length > 0 ? (
+            {invoice.items && invoice.items.length > 0 ? (
               invoice.items.map((item, idx) => (
                 <div 
                   key={item.id || idx}
-                  className="grid grid-cols-12 gap-3 items-center bg-[#F8FAFC] rounded-xl p-3.5 sm:p-4 text-xs sm:text-sm transition-colors hover:bg-slate-100/70"
+                  className="grid grid-cols-12 gap-3 items-center bg-[#F8FAFC] rounded-xl p-3 sm:p-3.5 text-xs sm:text-sm transition-colors hover:bg-slate-100/70"
                 >
                   <div className="col-span-6 sm:col-span-7 pr-2">
-                    <p className="font-bold text-slate-900">{item.name || 'Untitled Item'}</p>
-                    {vis.showItemDescription && item.description && (
+                    <p className="font-bold text-slate-900">{item.name || <span className="text-slate-400 italic">Untitled Item</span>}</p>
+                    {vis.showItemDescription && item.description ? (
                       <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
                         {item.description}
                       </p>
-                    )}
+                    ) : null}
                   </div>
                   <div className="col-span-2 text-center font-medium text-slate-700">
                     {item.quantity}
@@ -236,27 +247,15 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
                 </div>
               ))
             ) : (
-              /* Fallback single row matching screenshot if empty */
-              <div className="grid grid-cols-12 gap-3 items-center bg-[#F8FAFC] rounded-xl p-3.5 sm:p-4 text-xs sm:text-sm">
-                <div className="col-span-6 sm:col-span-7 font-bold text-slate-900">
-                  13th Lunch Design
-                </div>
-                <div className="col-span-2 text-center font-medium text-slate-700">
-                  1
-                </div>
-                <div className="col-span-2 text-right font-medium text-slate-700">
-                  {formatMoney(2500, currency)}
-                </div>
-                <div className="col-span-2 sm:col-span-1 text-right font-bold text-slate-900">
-                  {formatMoney(2500, currency)}
-                </div>
+              <div className="py-6 text-center text-slate-400 text-xs italic bg-[#F8FAFC] rounded-xl">
+                No items added yet. Click "+ Add Line Item" to enter details.
               </div>
             )}
           </div>
 
           {/* Subtotals & Taxes breakdown (if applicable) */}
           {(invoice.totalDiscount > 0 || (invoice.taxes && invoice.taxes.length > 0) || (invoice.shippingFee && invoice.shippingFee > 0)) && (
-            <div className="pt-4 mt-4 border-t border-slate-100 space-y-1.5 text-xs text-slate-500 max-w-xs ml-auto">
+            <div className="pt-3 mt-3 border-t border-slate-100 space-y-1 text-xs text-slate-500 max-w-xs ml-auto">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
                 <span className="font-semibold text-slate-800">{formatMoney(invoice.subtotal, currency)}</span>
@@ -283,12 +282,12 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
           )}
 
           {/* Table Footer: Total Amount */}
-          <div className="pt-6 text-right pr-2">
+          <div className="pt-4 text-right pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
               TOTAL AMOUNT:
             </span>
-            <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-              {formatMoney(invoice.grandTotal || 2500, currency)}
+            <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-0.5">
+              {formatMoney(invoice.grandTotal || 0, currency)}
             </p>
           </div>
         </div>
@@ -296,51 +295,51 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
         {/* ======================================================== */}
         {/* TERMS & CONDITIONS + BANK DETAILS CARD                   */}
         {/* ======================================================== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start my-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start my-4">
           
           {/* Left Column: Terms & Conditions */}
           <div>
-            <h4 className="text-xs font-bold text-slate-600 mb-1.5">
+            <h4 className="text-xs font-bold text-slate-600 mb-1">
               Terms & Conditions:
             </h4>
             <p className="text-[11px] text-slate-400 leading-relaxed max-w-sm">
-              {invoice.terms || defaultTerms}
+              {invoice.terms || 'Payment is requested according to the agreed schedule. Please contact us for any billing inquiries.'}
             </p>
           </div>
 
           {/* Right Column: Bank Details Card with Distinct Yellow Border */}
           <div 
-            className="rounded-2xl p-5 bg-white shadow-sm transition-all"
+            className="rounded-2xl p-4 bg-white shadow-sm transition-all"
             style={{ 
               border: `2px solid ${accentColor}80` 
             }}
           >
-            <div className="space-y-2 text-xs">
+            <div className="space-y-1.5 text-xs">
               <div className="grid grid-cols-12 gap-2">
                 <span className="col-span-5 font-bold text-slate-700">Name</span>
                 <span className="col-span-7 font-bold text-slate-800 uppercase tracking-tight">
-                  {invoice.bankDetails?.accountHolder || 'SANDEEP KAVETI'}
+                  {invoice.bankDetails?.accountHolder || invoice.business?.name || '—'}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-2">
                 <span className="col-span-5 font-bold text-slate-700">Bank details</span>
                 <span className="col-span-7 font-medium text-slate-800">
-                  {invoice.bankDetails?.bankName || 'Yes Bank'}
+                  {invoice.bankDetails?.bankName || '—'}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-2">
                 <span className="col-span-5 font-bold text-slate-700">Account #</span>
                 <span className="col-span-7 font-mono font-medium text-slate-800">
-                  {invoice.bankDetails?.accountNumber || '018391600022849'}
+                  {invoice.bankDetails?.accountNumber || '—'}
                 </span>
               </div>
 
               <div className="grid grid-cols-12 gap-2">
                 <span className="col-span-5 font-bold text-slate-700">IFS code</span>
                 <span className="col-span-7 font-mono font-medium text-slate-800">
-                  {invoice.bankDetails?.routingNumber || 'YESB0000183'}
+                  {invoice.bankDetails?.routingNumber || '—'}
                 </span>
               </div>
             </div>
@@ -352,26 +351,27 @@ export const ModernTemplate: React.FC<Props> = ({ invoice, customization, visibi
       {/* ======================================================== */}
       {/* DOCUMENT FOOTER WITH ABSTRACT BLUE RADIANT WAVE          */}
       {/* ======================================================== */}
-      <div className="relative mt-8 rounded-2xl overflow-hidden border-t border-slate-100 p-4 sm:p-5 bg-gradient-to-r from-blue-50/70 via-sky-100/50 to-blue-50/30">
-        {/* Subtle luminous blue ambient glow */}
+      <div className="relative mt-4 rounded-2xl overflow-hidden border-t border-slate-100 p-4 bg-gradient-to-r from-blue-50/70 via-sky-100/50 to-blue-50/30">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-200/40 via-transparent to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 text-xs">
           <div>
             <p className="font-extrabold text-slate-900 tracking-tight text-xs sm:text-sm">
-              Brand Name : <span className="font-bold text-slate-800">{invoice.business?.name || 'Sky Nova Digitals'}</span>
+              Brand Name : <span className="font-bold text-slate-800">{invoice.business?.name || '—'}</span>
             </p>
-            <p className="text-[11px] italic text-slate-500 mt-0.5">
-              Tag Line : <span className="italic">{invoice.notes || defaultTagline}</span>
-            </p>
+            {tagline ? (
+              <p className="text-[11px] italic text-slate-500 mt-0.5">
+                Tag Line : <span className="italic">{tagline}</span>
+              </p>
+            ) : null}
           </div>
 
           <div className="text-left sm:text-right space-y-0.5">
             <p className="font-semibold text-slate-800 text-xs">
-              Website : <span className="text-slate-600 font-normal">{invoice.business?.website || 'skynovadigitals.vercel.app'}</span>
+              Website : <span className="text-slate-600 font-normal">{invoice.business?.website || '—'}</span>
             </p>
             <p className="text-slate-500 text-[11px]">
-              <span className="font-semibold text-slate-700">Mail ID:</span> {invoice.business?.email || 'skynovadigitals@gmail.com'} <span className="mx-1 text-slate-300">|</span> <span className="font-semibold text-slate-700">Contact :</span> {invoice.business?.phone || '+91 - 93925 25043'}
+              <span className="font-semibold text-slate-700">Mail ID:</span> {invoice.business?.email || '—'} <span className="mx-1 text-slate-300">|</span> <span className="font-semibold text-slate-700">Contact :</span> {invoice.business?.phone || '—'}
             </p>
           </div>
         </div>

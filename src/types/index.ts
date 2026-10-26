@@ -6,6 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string;
   phone?: string;
   companyName?: string;
   avatarUrl?: string;
@@ -334,7 +335,6 @@ export type NavigationPage =
   | 'invoice_detail'
   | 'clients'
   | 'client_detail'
-  | 'products'
   | 'quotes'
   | 'quote_create'
   | 'quote_edit'

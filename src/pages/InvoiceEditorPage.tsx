@@ -17,7 +17,6 @@ import { generateInvoiceNumber, getDateAfterDays, getTodayDateString } from '../
 import { exportInvoiceToPdf, printInvoice } from '../utils/pdfExport';
 import { TemplateRenderer } from '../components/templates/TemplateRenderer';
 import { ClientSelectModal } from '../components/invoice/ClientSelectModal';
-import { ProductSelectModal } from '../components/invoice/ProductSelectModal';
 import { SendInvoiceModal } from '../components/invoice/SendInvoiceModal';
 import { RecordPaymentModal } from '../components/invoice/RecordPaymentModal';
 import { 
@@ -32,7 +31,6 @@ import {
   ArrowUp, 
   ArrowDown, 
   Users, 
-  Package, 
   Settings2, 
   Sparkles, 
   Eye, 
@@ -57,9 +55,9 @@ interface Props {
 export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
   const { 
     activeInvoiceId, 
+    activeClientId,
     invoices, 
     clients, 
-    products, 
     settings, 
     saveInvoice, 
     setCurrentView,
@@ -69,12 +67,11 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
 
   // Dialogs
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [showVisibilityPanel, setShowVisibilityPanel] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<'editor' | 'preview'>('editor');
-  const [zoomScale, setZoomScale] = useState<number>(0.92);
+  const [zoomScale, setZoomScale] = useState<number>(0.85);
   const [isSaving, setIsSaving] = useState(false);
 
   // Initial Invoice Data Constructor
@@ -84,16 +81,16 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       if (found) return JSON.parse(JSON.stringify(found));
     }
 
-    const defaultClient = clients[0] || {
-      id: 'cli_temp',
-      name: 'Food Link F&B Holdings LTD',
-      companyName: 'Food Link F&B Holdings LTD',
-      email: 'accounts@foodlink.com',
-      phone: '+91-XXXXXXXXXX',
-      addressLine1: 'Beeramguda',
-      city: 'Hyderabad',
-      state: 'Telangana',
-      postalCode: '500081',
+    const defaultClient: Client = (activeClientId ? clients.find(c => c.id === activeClientId) : null) || {
+      id: 'cli_' + Date.now(),
+      name: '',
+      companyName: '',
+      email: '',
+      phone: '',
+      addressLine1: '',
+      city: '',
+      state: '',
+      postalCode: '',
       country: 'India',
       createdAt: new Date().toISOString(),
     };
@@ -106,19 +103,19 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
     const defaultItems: InvoiceItem[] = [
       {
         id: 'it_' + Date.now(),
-        name: '13th Lunch Design',
-        description: 'We build software systems that grow with your business.',
+        name: '',
+        description: '',
         quantity: 1,
-        unit: 'pkg',
-        unitPrice: 2500,
+        unit: 'hrs',
+        unitPrice: 0,
         discount: 0,
         discountType: 'percentage',
         taxRate: 0,
-        lineSubtotal: 2500,
+        lineSubtotal: 0,
         lineDiscount: 0,
-        taxableAmount: 2500,
+        taxableAmount: 0,
         lineTax: 0,
-        lineTotal: 2500,
+        lineTotal: 0,
       },
     ];
 
@@ -155,8 +152,8 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
       invoiceDiscountType: 'fixed',
       shippingFee: 0,
       withholdingTaxRate: 0,
-      notes: settings.invoiceDefaults.defaultNotes || 'We build software systems that grow with your business.',
-      terms: settings.invoiceDefaults.defaultTerms || 'Fees and payment terms will be established in the contract or agreement prior to the commencement of the project. An initial deposit will be required before any design work begins. We reserve the right to suspend or halt work in the event of non-payment.',
+      notes: settings.invoiceDefaults.defaultNotes || '',
+      terms: settings.invoiceDefaults.defaultTerms || 'Fees and payment terms will be established in the agreement. An initial deposit will be required before work begins.',
       paymentInstructions: 'Please wire funds to the designated account.',
       bankDetails: JSON.parse(JSON.stringify(settings.business.bankDetails)),
       signatureType: 'text',
@@ -282,27 +279,6 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
     const [moved] = updated.splice(index, 1);
     updated.splice(targetIndex, 0, moved);
     triggerRecalculation({ items: updated });
-  };
-
-  const handleSelectProduct = (product: Product) => {
-    const newItem: InvoiceItem = {
-      id: 'it_' + Date.now(),
-      productId: product.id,
-      name: product.name,
-      description: product.description,
-      quantity: 1,
-      unit: product.unit,
-      unitPrice: product.unitPrice,
-      discount: 0,
-      discountType: 'percentage',
-      taxRate: product.defaultTaxRate,
-      lineSubtotal: product.unitPrice,
-      lineDiscount: 0,
-      taxableAmount: product.unitPrice,
-      lineTax: (product.unitPrice * product.defaultTaxRate) / 100,
-      lineTotal: product.unitPrice + (product.unitPrice * product.defaultTaxRate) / 100,
-    };
-    triggerRecalculation({ items: [...invoice.items, newItem] });
   };
 
   // Save Invoice
@@ -629,6 +605,40 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Brand Tagline</label>
+                <input
+                  type="text"
+                  value={invoice.notes || ''}
+                  onChange={e =>
+                    setInvoice({
+                      ...invoice,
+                      notes: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. We build software systems that grow with your business."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Website URL</label>
+                <input
+                  type="text"
+                  value={invoice.business?.website || ''}
+                  onChange={e =>
+                    setInvoice({
+                      ...invoice,
+                      business: { ...invoice.business, website: e.target.value },
+                    })
+                  }
+                  placeholder="e.g. yourcompany.com"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Phone</label>
@@ -832,6 +842,40 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Client Phone / Contact</label>
+                <input
+                  type="text"
+                  value={invoice.client?.phone || ''}
+                  onChange={e =>
+                    setInvoice({
+                      ...invoice,
+                      client: { ...invoice.client, phone: e.target.value },
+                    })
+                  }
+                  placeholder="+91-XXXXXXXXXX"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Client City / Location</label>
+                <input
+                  type="text"
+                  value={invoice.client?.city || ''}
+                  onChange={e =>
+                    setInvoice({
+                      ...invoice,
+                      client: { ...invoice.client, city: e.target.value },
+                    })
+                  }
+                  placeholder="e.g. Hyderabad, Telangana"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Billing Street Address</label>
               <input
@@ -856,17 +900,6 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
                   4
                 </span>
                 <h3 className="font-bold text-slate-900 text-sm">Line Items & Services</h3>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsProductModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
-                >
-                  <Package className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Insert from Product Catalog</span>
-                </button>
               </div>
             </div>
 
@@ -1371,7 +1404,7 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
                   <ZoomIn className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setZoomScale(0.92)}
+                  onClick={() => setZoomScale(0.85)}
                   className="p-1 hover:text-slate-900 rounded"
                   title="Reset Zoom"
                 >
@@ -1399,13 +1432,6 @@ export const InvoiceEditorPage: React.FC<Props> = ({ isEditing = false }) => {
           setInvoice({ ...invoice, client: selected });
           showToast(`Client applied: ${selected.name}`, 'info');
         }}
-      />
-
-      <ProductSelectModal
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
-        onSelectProduct={handleSelectProduct}
-        currency={invoice.currency}
       />
 
       <SendInvoiceModal

@@ -188,11 +188,17 @@ export const StorageService = {
     writeStorage(STORAGE_KEYS.CURRENT_USER, user);
   },
 
-  registerUser(payload: { name: string; email: string; phone?: string; companyName?: string; provider?: 'email' | 'google' }): User {
+  registerUser(payload: { name: string; email: string; password?: string; phone?: string; companyName?: string; provider?: 'email' | 'google' }): User {
+    const cleanEmail = payload.email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      throw new Error('Please enter a valid email address (e.g. name@example.com).');
+    }
+
     const users = this.getUsers();
-    const existing = users.find(u => u.email.toLowerCase() === payload.email.toLowerCase());
+    const existing = users.find(u => u.email.toLowerCase() === cleanEmail);
     if (existing) {
-      // Return existing or update last login
+      if (payload.password) existing.password = payload.password;
       existing.lastLoginAt = new Date().toISOString();
       if (payload.phone && !existing.phone) existing.phone = payload.phone;
       writeStorage(STORAGE_KEYS.USERS, users);
@@ -203,7 +209,8 @@ export const StorageService = {
     const newUser: User = {
       id: 'user_' + Date.now(),
       name: payload.name.trim(),
-      email: payload.email.trim().toLowerCase(),
+      email: cleanEmail,
+      password: payload.password,
       phone: payload.phone?.trim() || '',
       companyName: payload.companyName?.trim() || `${payload.name}'s Studio`,
       provider: payload.provider || 'email',
@@ -224,13 +231,25 @@ export const StorageService = {
     return newUser;
   },
 
-  loginUser(email: string): User | null {
+  loginUser(email: string, password?: string): User {
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      throw new Error('Invalid email address format. Please enter a valid email (e.g. name@example.com).');
+    }
+
     const users = this.getUsers();
-    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!found) return null;
+    const found = users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (!found) {
+      throw new Error('No account found with this email address. Please click "Sign up" to create a new account.');
+    }
 
     if (found.status === 'suspended') {
       throw new Error('This account has been suspended by an administrator.');
+    }
+
+    if (found.password && password && found.password !== password) {
+      throw new Error('Incorrect password. Please verify your credentials and try again.');
     }
 
     found.lastLoginAt = new Date().toISOString();

@@ -5,7 +5,6 @@ import { calculateInvoice } from '../utils/calculator';
 import { CURRENCIES, formatMoney } from '../utils/currency';
 import { generateQuoteNumber, getDateAfterDays, getTodayDateString } from '../utils/formatters';
 import { ClientSelectModal } from '../components/invoice/ClientSelectModal';
-import { ProductSelectModal } from '../components/invoice/ProductSelectModal';
 import { 
   Save, 
   ArrowLeft, 
@@ -13,7 +12,6 @@ import {
   Trash2, 
   Copy, 
   Users, 
-  Package, 
   Sparkles 
 } from 'lucide-react';
 
@@ -34,7 +32,6 @@ export const QuoteEditorPage: React.FC<Props> = ({ isEditing = false }) => {
   } = useApp();
 
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   const initialQuote = useMemo<Quote>(() => {
     if (isEditing && activeQuoteId) {
@@ -294,14 +291,6 @@ export const QuoteEditorPage: React.FC<Props> = ({ isEditing = false }) => {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-slate-900 text-sm">Proposed Deliverables & Pricing</h3>
-            <button
-              type="button"
-              onClick={() => setIsProductModalOpen(true)}
-              className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1"
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span>Insert Saved Item</span>
-            </button>
           </div>
 
           {quote.items.map((item, idx) => (
@@ -409,32 +398,6 @@ export const QuoteEditorPage: React.FC<Props> = ({ isEditing = false }) => {
         isOpen={isClientModalOpen}
         onClose={() => setIsClientModalOpen(false)}
         onSelectClient={c => setQuote({ ...quote, client: c })}
-      />
-
-      <ProductSelectModal
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
-        onSelectProduct={p => {
-          const newItem: InvoiceItem = {
-            id: 'qit_' + Date.now(),
-            productId: p.id,
-            name: p.name,
-            description: p.description,
-            quantity: 1,
-            unit: p.unit,
-            unitPrice: p.unitPrice,
-            discount: 0,
-            discountType: 'percentage',
-            taxRate: p.defaultTaxRate,
-            lineSubtotal: p.unitPrice,
-            lineDiscount: 0,
-            taxableAmount: p.unitPrice,
-            lineTax: (p.unitPrice * p.defaultTaxRate) / 100,
-            lineTotal: p.unitPrice + (p.unitPrice * p.defaultTaxRate) / 100,
-          };
-          triggerRecalc({ items: [...quote.items, newItem] });
-        }}
-        currency={quote.currency}
       />
     </div>
   );

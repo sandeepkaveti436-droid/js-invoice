@@ -112,12 +112,14 @@
   box-sizing: border-box;
 }
 
-/* Print Rules - Hides App Shell, Sidebar, Buttons, Topbars */
+/* Print Rules - Hides App Shell, Sidebar, Buttons, Topbars & Guarantees Single-Page Print */
 @media print {
-  body {
+  html, body {
     background: #ffffff !important;
     padding: 0 !important;
     margin: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
   }
 
   .no-print,
@@ -136,17 +138,22 @@
   }
 
   .a4-paper-container {
-    max-width: 100% !important;
-    width: 100% !important;
-    min-height: auto !important;
+    max-width: 210mm !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
     box-shadow: none !important;
-    margin: 0 !important;
-    padding: 20mm !important;
-    page-break-after: avoid;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-after: avoid !important;
+    overflow: hidden !important;
   }
 
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 0;
   }
 }

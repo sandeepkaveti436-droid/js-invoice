@@ -101,62 +101,96 @@ export const AuthPage: React.FC = () => {
     setErrorMessage(null);
     setIsLoading(true);
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     try {
       if (mode === 'signin') {
-        if (!email.trim() || !password.trim()) {
-          setErrorMessage('Please enter both email address and password.');
+        const cleanEmail = email.trim();
+        if (!cleanEmail) {
+          setErrorMessage('Please enter your email address.');
           setIsLoading(false);
           return;
         }
 
-        setIsSuccessTransition(true);
-        setTransitionUser({
-          name: email.split('@')[0],
-          title: 'Logging In...'
-        });
+        if (!emailRegex.test(cleanEmail)) {
+          setErrorMessage('Please enter a valid email address format (e.g. name@company.com).');
+          setIsLoading(false);
+          return;
+        }
 
-        setTimeout(async () => {
-          try {
-            await login(email, password);
-            showToast('Welcome back to JS Invoice!', 'success');
-          } catch (err: any) {
-            setIsSuccessTransition(false);
-            setErrorMessage(err?.message || 'Authentication error. Please check your details.');
-          } finally {
+        if (!password.trim()) {
+          setErrorMessage('Please enter your password.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Validate credentials FIRST before triggering any workspace transition
+        try {
+          const user = await login(cleanEmail, password);
+          
+          // Only if credentials are valid, show transition animation
+          setIsSuccessTransition(true);
+          setTransitionUser({
+            name: user.name || cleanEmail.split('@')[0],
+            title: 'Welcome Back!'
+          });
+
+          setTimeout(() => {
+            showToast(`Welcome back to JS Invoice, ${user.name}!`, 'success');
             setIsLoading(false);
-          }
-        }, 700);
+          }, 800);
+        } catch (err: any) {
+          setIsSuccessTransition(false);
+          setErrorMessage(err?.message || 'Authentication error. Please check your credentials.');
+          setIsLoading(false);
+        }
         return;
 
       } else if (mode === 'signup') {
-        if (!fullName.trim() || !email.trim() || !password.trim()) {
-          setErrorMessage('Please provide your full name, email address, and password.');
+        const cleanName = fullName.trim();
+        const cleanEmail = email.trim();
+
+        if (!cleanName) {
+          setErrorMessage('Please enter your full name.');
           setIsLoading(false);
           return;
         }
 
-        // Trigger celebratory animation
-        setIsSuccessTransition(true);
-        setTransitionUser({
-          name: fullName.trim(),
-          title: 'Account Created Successfully!'
-        });
-        triggerConfetti();
+        if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+          setErrorMessage('Please enter a valid email address (e.g. name@company.com).');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!password.trim() || password.length < 6) {
+          setErrorMessage('Password must be at least 6 characters long.');
+          setIsLoading(false);
+          return;
+        }
 
         const fullPhoneNumber = phone.trim() ? `${selectedCountry.code} ${phone.trim()}` : '';
-        
-        // Wait 1.1s for user to enjoy animation before mounting main dashboard
-        setTimeout(async () => {
-          try {
-            await signup(fullName, email, password, `${fullName}'s Workspace`, fullPhoneNumber);
-            showToast(`Welcome to JS Invoice, ${fullName.trim()}!`, 'success');
-          } catch (err: any) {
-            setIsSuccessTransition(false);
-            setErrorMessage(err?.message || 'Failed to create account.');
-          } finally {
+
+        try {
+          // Attempt registration
+          const user = await signup(cleanName, cleanEmail, password, `${cleanName}'s Workspace`, fullPhoneNumber);
+          
+          // Trigger celebratory animation only on real successful signup
+          setIsSuccessTransition(true);
+          setTransitionUser({
+            name: user.name,
+            title: 'Account Created Successfully!'
+          });
+          triggerConfetti();
+
+          setTimeout(() => {
+            showToast(`Welcome to JS Invoice, ${user.name}!`, 'success');
             setIsLoading(false);
-          }
-        }, 1100);
+          }, 1100);
+        } catch (err: any) {
+          setIsSuccessTransition(false);
+          setErrorMessage(err?.message || 'Failed to create account.');
+          setIsLoading(false);
+        }
         return;
 
       } else if (mode === 'forgot') {

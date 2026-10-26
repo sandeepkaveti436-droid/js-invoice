@@ -9,7 +9,6 @@ import {
   FileText, 
   FileCheck, 
   Users, 
-  Package, 
   ChevronDown, 
   Sparkles, 
   LogOut, 
@@ -120,8 +119,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
         return { title: 'Client Directory', breadcrumb: 'Clients' };
       case 'client_detail':
         return { title: 'Client Statement', breadcrumb: 'Clients / Profile' };
-      case 'products':
-        return { title: 'Products & Services', breadcrumb: 'Catalog' };
       case 'quotes':
         return { title: 'Estimates & Quotes', breadcrumb: 'Estimates' };
       case 'quote_create':
@@ -321,16 +318,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onMobileMenuToggle }) => {
                 >
                   <Users className="w-4 h-4 text-emerald-500" />
                   <span>Client</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView('products');
-                    setShowQuickNew(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 font-medium"
-                >
-                  <Package className="w-4 h-4 text-blue-500" />
-                  <span>Product / Service</span>
                 </button>
               </div>
             )}
