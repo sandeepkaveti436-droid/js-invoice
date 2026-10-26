@@ -15,6 +15,8 @@ export interface User {
   createdAt: string;
   lastLoginAt: string;
   status: 'active' | 'suspended';
+  isVerified?: boolean;
+  verificationToken?: string;
 }
 
 export type InvoiceStatus = 'draft' | 'sent' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';

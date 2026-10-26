@@ -58,30 +58,30 @@ export const DEFAULT_VISIBILITY: FieldVisibilityToggles = {
 export const createDefaultBusiness = (user?: Partial<User>): BusinessProfile => ({
   id: 'biz_' + (user?.id || 'default'),
   userId: user?.id,
-  name: user?.companyName || 'Sky Nova Digitals',
+  name: user?.companyName || user?.name || '',
   logoUrl: '',
-  email: 'skynovadigitals@gmail.com',
-  phone: '+91- 9392525043',
-  website: 'skynovadigitals.vercel.app',
+  email: user?.email || '',
+  phone: user?.phone || '',
+  website: '',
   taxId: '',
   stateCode: '36',
-  addressLine1: 'Beeramguda, Hyderabad',
+  addressLine1: '',
   addressLine2: '',
-  city: 'Hyderabad',
-  state: 'Telangana',
-  postalCode: '502032',
+  city: '',
+  state: '',
+  postalCode: '',
   country: 'India',
   bankDetails: {
-    bankName: 'Yes Bank',
-    accountHolder: 'SANDEEP KAVETI',
-    accountNumber: '018391600022849',
-    routingNumber: 'YESB0000183',
+    bankName: '',
+    accountHolder: user?.name || '',
+    accountNumber: '',
+    routingNumber: '',
     swiftCode: '',
     iban: '',
-    upiId: '9392525043@ybl',
-    additionalInfo: 'Please mention invoice reference during payment.',
+    upiId: '',
+    additionalInfo: '',
   },
-  signatureText: 'SANDEEP KAVETI',
+  signatureText: user?.name || '',
   defaultCurrency: 'INR',
 });
 
@@ -90,16 +90,16 @@ export const createDefaultSettings = (user?: Partial<User>): AppSettings => ({
   business: createDefaultBusiness(user),
   invoiceDefaults: {
     prefix: 'N°: ',
-    nextNumber: 140,
+    nextNumber: 1,
     title: 'Tax Invoice',
-    paymentTerms: 'Net 30',
+    paymentTerms: 'Due on Receipt',
     dueInDays: 30,
     defaultCurrency: 'INR',
     defaultTaxRate: 0,
     pricingMode: 'exclusive',
     gstEnabled: false,
-    defaultNotes: 'We build software systems that grow with your business.',
-    defaultTerms: 'Fees and payment terms will be established in the contract or agreement prior to the commencement of the project. An initial deposit will be required before any design work begins. We reserve the right to suspend or halt work in the event of non-payment.',
+    defaultNotes: '',
+    defaultTerms: 'Fees and payment terms will be established in the agreement. An initial deposit will be required before work begins.',
     defaultTemplate: 'modern',
     accentColor: '#EAA000',
   },
@@ -109,13 +109,13 @@ export const createDefaultSettings = (user?: Partial<User>): AppSettings => ({
     sidebarCollapsed: false,
   },
   emailConfig: {
-    senderName: 'Sky Nova Digitals Billing',
-    senderEmail: 'skynovadigitals@gmail.com',
-    replyTo: 'skynovadigitals@gmail.com',
+    senderName: user?.name || 'Billing Department',
+    senderEmail: user?.email || '',
+    replyTo: user?.email || '',
     apiKey: '',
     provider: 'sandbox',
-    invoiceSubjectTemplate: 'Invoice {invoice_number} from Sky Nova Digitals',
-    invoiceBodyTemplate: 'Hi {client_name},\n\nPlease find attached invoice {invoice_number} for {total_amount}.\nDue date: {due_date}.\n\nThank you for choosing Sky Nova Digitals!\nBest regards,\nSANDEEP KAVETI',
+    invoiceSubjectTemplate: 'Invoice {invoice_number} from {business_name}',
+    invoiceBodyTemplate: 'Hi {client_name},\n\nPlease find attached invoice {invoice_number} for {total_amount}.\nDue date: {due_date}.\n\nThank you!\nBest regards,\n{business_name}',
   },
   paymentGatewayConfig: {
     enabled: false,
@@ -125,21 +125,8 @@ export const createDefaultSettings = (user?: Partial<User>): AppSettings => ({
   },
 });
 
-// Built-in Admin Account for Platform Management
-const SEED_USERS: User[] = [
-  {
-    id: 'user_admin',
-    name: 'JS Invoice Admin',
-    email: 'admin@jsinvoice.com',
-    companyName: 'JS Invoice Operations Ltd',
-    avatarUrl: '',
-    provider: 'email',
-    role: 'admin',
-    createdAt: '2026-01-01T00:00:00Z',
-    lastLoginAt: new Date().toISOString(),
-    status: 'active',
-  },
-];
+// Real User Database (starts clean without dummy users)
+const SEED_USERS: User[] = [];
 
 // Helper to safely read from localStorage
 function readStorage<T>(key: string, defaultValue: T): T {
@@ -188,23 +175,28 @@ export const StorageService = {
     writeStorage(STORAGE_KEYS.CURRENT_USER, user);
   },
 
-  registerUser(payload: { name: string; email: string; password?: string; phone?: string; companyName?: string; provider?: 'email' | 'google' }): User {
+  registerUser(payload: { 
+    name: string; 
+    email: string; 
+    password?: string; 
+    phone?: string; 
+    companyName?: string; 
+    provider?: 'email' | 'google' 
+  }): { user: User; verificationToken: string; verificationUrl: string } {
     const cleanEmail = payload.email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
-      throw new Error('Please enter a valid email address (e.g. name@example.com).');
+      throw new Error('Please enter a valid official email address (e.g. name@company.com).');
     }
 
     const users = this.getUsers();
     const existing = users.find(u => u.email.toLowerCase() === cleanEmail);
     if (existing) {
-      if (payload.password) existing.password = payload.password;
-      existing.lastLoginAt = new Date().toISOString();
-      if (payload.phone && !existing.phone) existing.phone = payload.phone;
-      writeStorage(STORAGE_KEYS.USERS, users);
-      this.setCurrentUser(existing);
-      return existing;
+      throw new Error('An account with this email address already exists. Please sign in instead.');
     }
+
+    const verificationToken = 'vtok_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+    const isPreVerified = payload.provider === 'google';
 
     const newUser: User = {
       id: 'user_' + Date.now(),
@@ -212,44 +204,75 @@ export const StorageService = {
       email: cleanEmail,
       password: payload.password,
       phone: payload.phone?.trim() || '',
-      companyName: payload.companyName?.trim() || `${payload.name}'s Studio`,
+      companyName: payload.companyName?.trim() || `${payload.name.trim()}'s Business`,
       provider: payload.provider || 'email',
       role: 'user',
       createdAt: new Date().toISOString(),
       lastLoginAt: new Date().toISOString(),
       status: 'active',
+      isVerified: isPreVerified,
+      verificationToken: isPreVerified ? undefined : verificationToken,
     };
 
     users.push(newUser);
     writeStorage(STORAGE_KEYS.USERS, users);
-    this.setCurrentUser(newUser);
 
-    // Initialize user's settings
-    const settings = this.getUserSettings(newUser.id);
+    // Initialize user's settings with their clean original profile
+    const settings = createDefaultSettings(newUser);
     writeStorage(STORAGE_KEYS.SETTINGS + '_' + newUser.id, settings);
 
-    return newUser;
+    if (isPreVerified) {
+      this.setCurrentUser(newUser);
+    }
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const verificationUrl = `${origin}?verify=${verificationToken}&email=${encodeURIComponent(cleanEmail)}`;
+
+    return { user: newUser, verificationToken, verificationUrl };
+  },
+
+  verifyEmailToken(token: string, email?: string): User {
+    const users = this.getUsers();
+    const found = users.find(u => 
+      u.verificationToken === token || 
+      (email && u.email.toLowerCase() === email.toLowerCase() && u.verificationToken === token)
+    );
+
+    if (!found) {
+      throw new Error('Invalid or expired verification link. Please check your credentials or register again.');
+    }
+
+    found.isVerified = true;
+    found.verificationToken = undefined;
+    found.lastLoginAt = new Date().toISOString();
+    writeStorage(STORAGE_KEYS.USERS, users);
+    this.setCurrentUser(found);
+    return found;
   },
 
   loginUser(email: string, password?: string): User {
     const cleanEmail = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
-      throw new Error('Invalid email address format. Please enter a valid email (e.g. name@example.com).');
+      throw new Error('Invalid email address format. Please enter a valid email (e.g. name@company.com).');
     }
 
     const users = this.getUsers();
     const found = users.find(u => u.email.toLowerCase() === cleanEmail);
     if (!found) {
-      throw new Error('No account found with this email address. Please click "Sign up" to create a new account.');
+      throw new Error('No registered account found with this email address. Please click "Sign up" to create an account.');
     }
 
     if (found.status === 'suspended') {
       throw new Error('This account has been suspended by an administrator.');
     }
 
+    if (found.isVerified === false) {
+      throw new Error('This email account has not been activated yet. Please click the verification link sent during sign up.');
+    }
+
     if (found.password && password && found.password !== password) {
-      throw new Error('Incorrect password. Please verify your credentials and try again.');
+      throw new Error('Incorrect password. Please verify your password and try again.');
     }
 
     found.lastLoginAt = new Date().toISOString();

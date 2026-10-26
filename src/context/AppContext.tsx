@@ -25,7 +25,8 @@ interface AppContextType {
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
   login: (email: string, pass?: string) => Promise<User>;
-  signup: (name: string, email: string, pass?: string, companyName?: string, phone?: string) => Promise<User>;
+  signup: (name: string, email: string, pass?: string, companyName?: string, phone?: string) => Promise<{ user: User; verificationToken: string; verificationUrl: string }>;
+  verifyEmail: (token: string, email?: string) => Promise<User>;
   loginWithGoogle: () => Promise<User>;
   logout: () => void;
   switchUserAccount: (userId: string) => void;
@@ -138,8 +139,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return user;
   };
 
-  const signup = async (name: string, email: string, pass?: string, companyName?: string, phone?: string): Promise<User> => {
-    const user = StorageService.registerUser({
+  const signup = async (name: string, email: string, pass?: string, companyName?: string, phone?: string): Promise<{ user: User; verificationToken: string; verificationUrl: string }> => {
+    const res = StorageService.registerUser({
       name,
       email,
       password: pass,
@@ -147,13 +148,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       companyName,
       provider: 'email',
     });
+    return res;
+  };
+
+  const verifyEmail = async (token: string, email?: string): Promise<User> => {
+    const user = StorageService.verifyEmailToken(token, email);
     setCurrentUser(user);
     return user;
   };
 
   const loginWithGoogle = async (): Promise<User> => {
     // Generate or login via Google
-    const user = StorageService.registerUser({
+    const { user } = StorageService.registerUser({
       name: 'Google User',
       email: 'user.google@gmail.com',
       companyName: 'Google Workspace Studio',
@@ -366,6 +372,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsAuthModalOpen,
         login,
         signup,
+        verifyEmail,
         loginWithGoogle,
         logout,
         switchUserAccount,
