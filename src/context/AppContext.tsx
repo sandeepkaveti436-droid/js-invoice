@@ -168,14 +168,48 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshData();
   }, [currentUser]);
 
+  // Initial cross-device cloud user synchronization from Supabase
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      SupabaseSync.fetchPlatformUsers().then(cloudUsers => {
+        if (cloudUsers && cloudUsers.length > 0) {
+          StorageService.mergeCloudUsers(cloudUsers);
+        }
+      }).catch(err => {
+        console.warn('Initial cloud users sync error:', err);
+      });
+    }
+  }, []);
+
   // Auth Functions
   const login = async (email: string, pass?: string): Promise<User> => {
-    const user = StorageService.loginUser(email, pass);
-    setCurrentUser(user);
-    if (user.role === 'admin') {
-      setCurrentView('admin_dashboard');
+    try {
+      const user = StorageService.loginUser(email, pass);
+      setCurrentUser(user);
+      if (user.role === 'admin') {
+        setCurrentView('admin_dashboard');
+      }
+      return user;
+    } catch (err: any) {
+      // If user not found in local cache, pull latest user directory from Supabase
+      if (isSupabaseConfigured()) {
+        try {
+          const cloudUsers = await SupabaseSync.fetchPlatformUsers();
+          if (cloudUsers && cloudUsers.length > 0) {
+            StorageService.mergeCloudUsers(cloudUsers);
+            const user = StorageService.loginUser(email, pass);
+            setCurrentUser(user);
+            if (user.role === 'admin') {
+              setCurrentView('admin_dashboard');
+            }
+            return user;
+          }
+        } catch {
+          // Re-throw original error
+        }
+      }
+      throw err;
     }
-    return user;
   };
 
   const signup = async (name: string, email: string, pass?: string, companyName?: string, phone?: string): Promise<{ user: User; verificationToken: string; verificationUrl: string }> => {
@@ -187,6 +221,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       companyName,
       provider: 'email',
     });
+    // Auto-login newly registered user
+    setCurrentUser(res.user);
     return res;
   };
 

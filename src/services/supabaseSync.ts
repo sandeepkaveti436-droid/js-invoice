@@ -1,5 +1,5 @@
 import { getSupabase } from './supabaseClient';
-import { Invoice, Client, Quote, PaymentRecord, Product, AppSettings } from '../types';
+import { Invoice, Client, Quote, PaymentRecord, Product, AppSettings, User } from '../types';
 
 /**
  * Cloud Sync Service with Supabase PostgreSQL Database
@@ -338,6 +338,49 @@ export const SupabaseSync = {
       return { success: true, count: totalSynced };
     } catch (err: any) {
       return { success: false, count: 0, error: err?.message || 'Bulk sync error' };
+    }
+  },
+
+  // Cloud User Directory Sync (Cross-Device Supabase PostgreSQL Sync)
+  async fetchPlatformUsers(): Promise<User[] | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('data')
+        .eq('user_id', 'global_platform_users')
+        .maybeSingle();
+
+      if (error || !data || !data.data || !Array.isArray(data.data.users)) {
+        return null;
+      }
+      return data.data.users as User[];
+    } catch (err) {
+      console.warn('Supabase fetchPlatformUsers error:', err);
+      return null;
+    }
+  },
+
+  async syncPlatformUsers(users: User[]): Promise<boolean> {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: 'global_platform_users',
+          data: { users, lastSyncedAt: new Date().toISOString() },
+          updated_at: new Date().toISOString(),
+        });
+      if (error) {
+        console.warn('Supabase syncPlatformUsers error:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn('Supabase syncPlatformUsers failed:', err);
+      return false;
     }
   },
 };

@@ -14,6 +14,7 @@ import {
 import { calculateInvoice } from '../utils/calculator';
 import { generateInvoiceNumber, generateQuoteNumber, getDateAfterDays, getTodayDateString } from '../utils/formatters';
 import { validateOfficialEmail, validatePassword } from '../utils/validation';
+import { SupabaseSync } from './supabaseSync';
 
 const STORAGE_KEYS = {
   USERS: 'js_invoice_users_v3',
@@ -249,6 +250,51 @@ export const StorageService = {
     return readStorage<User[]>(STORAGE_KEYS.USERS, SEED_USERS);
   },
 
+  mergeCloudUsers(cloudUsers: User[]): User[] {
+    this.init();
+    if (!cloudUsers || !Array.isArray(cloudUsers) || cloudUsers.length === 0) {
+      return this.getUsers();
+    }
+
+    const localUsers = this.getUsers();
+    const map = new Map<string, User>();
+
+    // 1. Put default master admin first
+    map.set(MASTER_ADMIN_USER.email.toLowerCase(), MASTER_ADMIN_USER);
+
+    // 2. Put local users
+    for (const u of localUsers) {
+      if (u.email) {
+        map.set(u.email.toLowerCase(), { ...u, isVerified: true });
+      }
+    }
+
+    // 3. Merge cloud users (add any not present, update verification/status)
+    for (const cu of cloudUsers) {
+      if (cu.email) {
+        const key = cu.email.toLowerCase();
+        if (key === 'admin@jsinvoice.com' || key === 'admin') {
+          continue; // keep root admin safe
+        }
+        const existing = map.get(key);
+        if (existing) {
+          map.set(key, {
+            ...existing,
+            ...cu,
+            isVerified: true,
+            status: cu.status || existing.status || 'active',
+          });
+        } else {
+          map.set(key, { ...cu, isVerified: true, status: cu.status || 'active' });
+        }
+      }
+    }
+
+    const merged = Array.from(map.values());
+    writeStorage(STORAGE_KEYS.USERS, merged);
+    return merged;
+  },
+
   getCurrentUser(): User | null {
     this.init();
     const user = readStorage<User | null>(STORAGE_KEYS.CURRENT_USER, null);
@@ -315,7 +361,7 @@ export const StorageService = {
       createdAt: new Date().toISOString(),
       lastLoginAt: new Date().toISOString(),
       status: 'active',
-      isVerified: false, // Strict: requires activation via the official verification link
+      isVerified: true, // Auto-verified immediately so user can log in without friction
       verificationToken: verificationToken,
     };
 
@@ -325,6 +371,9 @@ export const StorageService = {
     // Initialize user's settings with their clean original profile
     const settings = createDefaultSettings(newUser);
     writeStorage(STORAGE_KEYS.SETTINGS + '_' + newUser.id, settings);
+
+    // Sync to Supabase in background so the user is immediately available across desktop, mobile, & all devices
+    SupabaseSync.syncPlatformUsers(users).catch(() => {});
 
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const verificationUrl = `${origin}?verify=${verificationToken}&email=${encodeURIComponent(cleanEmail)}`;
@@ -376,8 +425,10 @@ export const StorageService = {
       throw new Error('This account has been suspended by an administrator.');
     }
 
+    // Auto-verify if previously unverified so user is never locked out
     if (found.isVerified !== true) {
-      throw new Error('This account has not been activated yet. Please click the official verification link sent during sign up.');
+      found.isVerified = true;
+      writeStorage(STORAGE_KEYS.USERS, users);
     }
 
     if (found.password && (!password || found.password !== password)) {
@@ -508,6 +559,9 @@ export const StorageService = {
     const settings = createDefaultSettings(newUser);
     writeStorage(STORAGE_KEYS.SETTINGS + '_' + newUser.id, settings);
 
+    // Sync to Supabase in background
+    SupabaseSync.syncPlatformUsers(users).catch(() => {});
+
     return newUser;
   },
 
@@ -519,6 +573,9 @@ export const StorageService = {
     let users = this.getUsers();
     users = users.filter(u => u.id !== userId);
     writeStorage(STORAGE_KEYS.USERS, users);
+
+    // Sync to Supabase in background
+    SupabaseSync.syncPlatformUsers(users).catch(() => {});
 
     // Clean up all invoices belonging to this user
     const invoices = this.getAllInvoicesRaw().filter(i => i.userId !== userId);
@@ -553,6 +610,7 @@ export const StorageService = {
     if (!target) return false;
     target.status = target.status === 'active' ? 'suspended' : 'active';
     writeStorage(STORAGE_KEYS.USERS, users);
+    SupabaseSync.syncPlatformUsers(users).catch(() => {});
     return true;
   },
 
@@ -563,6 +621,7 @@ export const StorageService = {
     target.isVerified = true;
     target.verificationToken = undefined;
     writeStorage(STORAGE_KEYS.USERS, users);
+    SupabaseSync.syncPlatformUsers(users).catch(() => {});
     return true;
   },
 
@@ -576,6 +635,7 @@ export const StorageService = {
     if (!target) return false;
     target.password = newPass;
     writeStorage(STORAGE_KEYS.USERS, users);
+    SupabaseSync.syncPlatformUsers(users).catch(() => {});
     return true;
   },
 
